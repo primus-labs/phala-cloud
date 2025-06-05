@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Phala Cloud platform provides RESTful APIs for deploying and managing Confidential Virtual Machines (CVMs). This guide covers the complete workflow for deploying applications using our V2 API endpoints with proper KMS integration.
+The Phala Cloud platform provides REST APIs for deploying and managing Confidential Virtual Machines (CVMs). This guide shows you how to deploy applications using our V2 API endpoints with KMS integration.
 
 ## Base URL
 ```
@@ -13,23 +13,23 @@ https://cloud-api.phala.network/v1
 
 ### Getting Your API Key
 
-1. **Sign up for Phala Cloud**: Visit [https://cloud.phala.network](https://cloud.phala.network)
-2. **Complete verification**: Verify your email and complete the onboarding process
+1. **Sign up for Phala Cloud**: Go to [https://cloud.phala.network](https://cloud.phala.network)
+2. **Complete verification**: Verify your email and finish onboarding
 3. **Generate API key**: 
-   - Navigate to "Settings" → "API Keys" in your dashboard
+   - Go to "Settings" → "API Keys" in your dashboard
    - Click "Create New API Key"
-   - Copy and securely store your API key
+   - Copy and store your API key safely
 
 ### Using Your API Key
 
-All API requests require authentication using an API key:
+All API requests need authentication with an API key:
 ```bash
 -H "X-API-Key: <your-api-key>"
 ```
 
 ### Verify Your API Key
 
-Test your API key with this simple verification endpoint:
+Test your API key with this verification endpoint:
 
 ```bash
 curl -X GET "https://cloud-api.phala.network/v1/users/me" \
@@ -47,38 +47,38 @@ curl -X GET "https://cloud-api.phala.network/v1/users/me" \
 ```
 
 If this fails, check:
-- API key is correct and not truncated
+- API key is correct and not cut off
 - Account is verified and active
 - No extra spaces in the header
 
 ## Core Concepts
 
 ### CVM Deployment Process
-CVM deployment follows a structured workflow:
-1. **Node Discovery**: Query available compute nodes and their capabilities
-2. **Resource Selection**: Choose appropriate nodes, images, and KMS services
-3. **Provision Phase**: Reserve resources and prepare deployment configuration
-4. **App Authentication**: Configure App ID (method depends on KMS type)
+CVM deployment follows these steps:
+1. **Node Discovery**: Find available compute nodes and their features
+2. **Resource Selection**: Pick appropriate nodes, images, and KMS services
+3. **Provision Phase**: Reserve resources and prepare deployment setup
+4. **App Authentication**: Set up App ID (method depends on KMS type)
 5. **Create Phase**: Deploy the CVM instance with encrypted environment variables
 
 ### KMS Types and App ID Generation
 
-The system supports two types of Key Management Services with different App ID generation methods:
+The system supports two types of Key Management Services with different App ID methods:
 
 #### Built-in KMS (Traditional)
 - **App ID Generation**: `app_id = compose_hash[:40]` (first 40 characters of compose hash)
-- **Usage**: Simpler setup, suitable for development and basic production use
-- **Authentication**: Direct KMS connection with app_id derived from compose file
+- **Usage**: Simpler setup, good for development and basic production
+- **Authentication**: Direct KMS connection with app_id from compose file
 
 #### Onchain KMS
 - **App ID Generation**: Generated through blockchain contract deployment
 - **Usage**: Enterprise-grade security with blockchain-based authentication
-- **Authentication**: Requires contract deployment and blockchain interaction
-- **Node Support**: Only available on nodes with `support_onchain_kms: true`
+- **Authentication**: Needs contract deployment and blockchain interaction
+- **Node Support**: Only works on nodes with `support_onchain_kms: true`
 
 ### Compose Hash Generation
 
-The compose hash is generated using a deterministic algorithm:
+The compose hash uses this algorithm:
 
 1. **JSON Serialization**: Convert the compose manifest to JSON with:
    - Keys sorted alphabetically
@@ -86,7 +86,6 @@ The compose hash is generated using a deterministic algorithm:
    - Consistent field ordering
 
 2. **SHA-256 Hashing**: Apply SHA-256 to the UTF-8 encoded JSON string
-
 3. **Example Algorithm**:
 ```python
 import hashlib
@@ -122,14 +121,12 @@ Phala Cloud uses a **provision-based deployment approach** with the V2 API:
 ### Features
 - **Two-step process**: Provision first, then create
 - **Endpoints**: `POST /cvms/provision` → `POST /cvms`
-- **Benefits**: Better error handling, caching support, fine-grained workflow control
+- **Benefits**: Better error handling, caching support, better workflow control
 - **Preflight**: Separate provision and creation phases for better validation
-
-
 
 ## Quick Start: Minimal Working Example
 
-This section provides a complete end-to-end example for deploying your first CVM using built-in KMS (the simplest path).
+This section gives you a complete end-to-end example for deploying your first CVM using built-in KMS (the simplest path).
 
 **What you'll learn:**
 - How to find and use the best available node automatically
@@ -157,7 +154,7 @@ curl -X GET "https://cloud-api.phala.network/v1/teepods/available" \
 ```
 
 **How to use the response:**
-1. **Node ID**: Use `teepod_id` from the first node (system automatically selects the best available)
+1. **Node ID**: Use `teepod_id` from the first node (system picks the best available automatically)
 2. **Image**: Use `name` from the first non-dev image in that node's `images` array
 3. **KMS Type**: Note the `support_onchain_kms` value (use `false` for this quick start)
 
@@ -220,10 +217,10 @@ curl -X POST "https://cloud-api.phala.network/v1/cvms/provision" \
 **💾 Save these values - you'll need them for the next step!**
 
 ### Environment Variable Encryption Notice
-- ⚠️ **Important**: There's currently no API to validate encrypted environment variable format
-- If encryption format is incorrect, CVM creation will fail with an error
+- ⚠️ **Important**: There's no API to check encrypted environment variable format
+- If encryption format is wrong, CVM creation will fail with an error
 - **Recommendation**: Start with empty `"encrypted_env": ""` to test the deployment flow
-- Add environment variables only after confirming basic deployment works
+- Add environment variables only after basic deployment works
 
 ### Step 4: Create Your CVM
 
@@ -271,13 +268,13 @@ Once status is `"running"`, your application will be available at:
 https://<vm_uuid>.cloud.phala.network
 ```
 
-**🎉 Congratulations!** You've successfully deployed your first CVM.
+**🎉 Done!** You've deployed your first CVM.
 
 ## Detailed API Workflow
 
 ### Step 1: Discover Available Nodes
 
-Query available compute nodes to understand their capabilities, supported images, and KMS services.
+Find available compute nodes to understand their capabilities, supported images, and KMS services.
 
 **Endpoint:** `GET /teepods/available`
 
@@ -440,7 +437,7 @@ For nodes with `support_onchain_kms: true`, you must configure App Authenticatio
 Deploy a new authentication contract on the blockchain:
 
 **Prerequisites:**
-- ETH-compatible wallet with sufficient balance
+- ETH-compatible wallet with enough balance
 - Access to the blockchain network (specified by `chain_id`)
 
 **Contract Deployment Example:**
@@ -626,7 +623,7 @@ For built-in KMS nodes (`support_onchain_kms: false`), the App ID is automatical
 app_id = compose_hash[:40]  # First 20 bytes as hex string
 ```
 
-No blockchain interaction required - proceed directly to Step 5.
+No blockchain interaction required - go straight to Step 5.
 
 ### Step 5: Create CVM Instance
 
@@ -692,7 +689,7 @@ The provision response includes the `app_env_encrypt_pubkey`:
 
 #### Method 2: Direct KMS API Access
 
-You can obtain the encryption public key directly from the KMS service:
+You can get the encryption public key directly from the KMS service:
 
 **Endpoint:** `POST /prpc/KMS.GetAppEnvEncryptPubKey`
 
@@ -715,7 +712,7 @@ message PublicKeyResponse {
 
 ### Public Key Signature Verification
 
-When obtaining public keys from KMS, verify the signature to ensure authenticity:
+When getting public keys from KMS, verify the signature to make sure it's authentic:
 
 ```python
 from cryptography.hazmat.primitives.asymmetric import x25519
@@ -944,7 +941,7 @@ console.log("Encrypted environment:", encryptedEnv);
 
 ### Encoding Format Summary
 
-For clarity, here are the encoding formats used throughout the API:
+Here are the encoding formats used throughout the API:
 
 | Data Type | Format | Example |
 |-----------|--------|---------|
@@ -962,7 +959,7 @@ Updating a CVM follows a similar pattern to deployment, with optional onchain KM
 
 ### Step 1: Get Current Compose File
 
-First, retrieve the current compose file configuration:
+First, get the current compose file configuration:
 
 **Endpoint:** `GET /cvms/{identifier}/compose_file`
 
@@ -1165,11 +1162,9 @@ try {
 }
 ```
 
-
-
 ### Step 3B: Built-in KMS Flow
 
-For built-in KMS nodes, skip the blockchain interaction - proceed directly to Step 4.
+For built-in KMS nodes, skip the blockchain interaction - go straight to Step 4.
 
 ### Step 4: Apply Compose File Update
 
@@ -1194,7 +1189,7 @@ The update will be applied asynchronously. Monitor the CVM status to confirm com
 
 ### Step 5: Verify Update
 
-Check the CVM status to ensure the update was successful:
+Check the CVM status to make sure the update worked:
 
 **Endpoint:** `GET /cvms/{identifier}`
 
@@ -1211,7 +1206,7 @@ Look for:
 
 ## Alternative Update Methods
 
-In addition to the recommended workflow above, there are alternative methods for specific use cases:
+Besides the recommended workflow above, there are alternative methods for specific use cases:
 
 ### Direct Submit Method
 
@@ -1404,7 +1399,7 @@ Before deploying, verify:
 - [ ] VCPU: 1-8 cores available
 - [ ] Memory: 2GB-32GB available  
 - [ ] Disk: 20GB-100GB available
-- [ ] Selected node has sufficient resources
+- [ ] Selected node has enough resources
 
 **✅ Environment Variables:**
 - [ ] Sensitive data is encrypted
@@ -1484,8 +1479,7 @@ curl -v -X POST "..." 2>&1 | tee debug.log
 - Verify KMS contract addresses before deployment
 
 ### 3. Environment Variable Security
-- Always encrypt environment variables before transmission
-- Verify public key signatures when using direct KMS access
+- Always encrypt environment variables before transmission- Verify public key signatures when using direct KMS access
 - Use unique salts for each deployment
 - Clear sensitive data from memory after use
 
@@ -1500,5 +1494,3 @@ curl -v -X POST "..." 2>&1 | tee debug.log
 - Validate compose files locally before submission
 - Monitor CVM status after creation/updates
 - Track blockchain transaction status for onchain KMS deployments
-
- 
