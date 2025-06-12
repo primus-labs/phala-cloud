@@ -9,10 +9,9 @@
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "fmt": "biome format --write",
-    "test": "vitest --run --exclude '**/*.integration.test.ts'",
-    "test:integration": "vitest --run '**/*.integration.test.ts'",
+    "test": "vitest --run --exclude '**/*.e2e.test.ts'",
+    "test:e2e": "vitest --run src/**/*.e2e.test.ts",
     "test:watch": "vitest",
-    "test:all": "vitest --run --include '**/*.test.ts' --include '**/*.integration.test.ts'",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "check": "npm run lint && npm run test",
@@ -44,6 +43,6 @@
     "directory": "js"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   }
 }
