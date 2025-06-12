@@ -160,13 +160,18 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
       - name: Install dependencies
         working-directory: js
-        run: npm ci
+        run: bun install
 
       - name: Build for Node.js ${{ matrix.node-version }}
         working-directory: js
-        run: npm run build
+        run: bun run build
 
       - name: Test Node.js compatibility
         working-directory: js
@@ -183,6 +188,9 @@ jobs:
                 process.exit(1);
               }
             "
+          else
+            echo "Warning: dist/index.js not found, checking for other build outputs..."
+            ls -la dist/ || echo "dist directory not found"
           fi
           
           if [ -f "dist/index.mjs" ] || [ -f "dist/index.esm.js" ]; then
@@ -195,6 +203,8 @@ jobs:
                 process.exit(1);
               });
             "
+          else
+            echo "Warning: ESM build outputs not found"
           fi
 
   browser-compatibility:
