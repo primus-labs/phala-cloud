@@ -106,7 +106,7 @@ export type ProvisionCvmRequest = z.infer<typeof ProvisionCvmRequestSchema> & {
   compose_file?: {
     gateway_enabled?: boolean; // recommended
     tproxy_enabled?: boolean; // deprecated
-    [key: string]: any;
+    [key: string]: unknown;
   };
 };
 
@@ -173,14 +173,14 @@ function handleGatewayCompatibility(appCompose: ProvisionCvmRequest): ProvisionC
 }
 
 // Transform response: rename teepod_id to node_id for default schema
-function transformResponse(data: any, isDefaultSchema: boolean): any {
+function transformResponse(data: unknown, isDefaultSchema: boolean): unknown {
   if (!isDefaultSchema || !data || typeof data !== "object") {
     return data;
   }
 
   // If response has teepod_id, rename it to node_id
-  if ("teepod_id" in data) {
-    const { teepod_id, ...rest } = data;
+  if (data && typeof data === "object" && "teepod_id" in data) {
+    const { teepod_id, ...rest } = data as Record<string, unknown> & { teepod_id: unknown };
     return { ...rest, node_id: teepod_id };
   }
 

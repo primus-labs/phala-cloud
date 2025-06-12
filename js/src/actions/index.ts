@@ -26,3 +26,14 @@ export {
   ProvisionCvmRequestSchema,
   type ProvisionCvmRequest,
 } from "./provision_cvm";
+
+export {
+  commitCvmProvision,
+  safeCommitCvmProvision,
+  type CommitCvmProvisionParameters,
+  type CommitCvmProvisionReturnType,
+  CommitCvmProvisionSchema,
+  type CommitCvmProvision,
+  CommitCvmProvisionRequestSchema,
+  type CommitCvmProvisionRequest,
+} from "./commit_cvm_provision";
