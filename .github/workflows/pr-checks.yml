@@ -229,9 +229,10 @@ jobs:
           bun run build
 
       - name: Install Playwright
+        working-directory: js
         run: |
-          npm install -g playwright
-          playwright install chromium firefox webkit
+          bun add -d playwright
+          npx playwright install chromium firefox webkit
 
       - name: Test browser compatibility  
         working-directory: js
