@@ -15,3 +15,14 @@ export {
   AvailableNodesSchema,
   type AvailableNodes,
 } from "./get_available_nodes";
+
+export {
+  provisionCvm,
+  safeProvisionCvm,
+  type ProvisionCvmParameters,
+  type ProvisionCvmReturnType,
+  ProvisionCvmSchema,
+  type ProvisionCvm,
+  ProvisionCvmRequestSchema,
+  type ProvisionCvmRequest,
+} from "./provision_cvm";
