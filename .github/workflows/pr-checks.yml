@@ -232,6 +232,7 @@ jobs:
         working-directory: js
         run: |
           bun add -d playwright
+          npx playwright install-deps
           npx playwright install chromium firefox webkit
 
       - name: Test browser compatibility  
