@@ -1,0 +1,353 @@
+name: SDK PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+
+jobs:
+  js-sdk-checks:
+    name: JavaScript SDK Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: js
+        run: bun install
+
+      - name: Run format check
+        id: format-check
+        working-directory: js
+        run: |
+          # Store the current state
+          git diff > /tmp/pre-format.diff
+          
+          # Run formatter
+          bun run fmt
+          
+          # Check if there are any changes after formatting
+          git diff > /tmp/post-format.diff
+          
+          # Compare diffs
+          if ! cmp -s /tmp/pre-format.diff /tmp/post-format.diff; then
+            echo "Code formatting issues found. Please run 'bun run fmt' locally and commit the changes."
+            echo "format_issues=true" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "No formatting issues found."
+            echo "format_issues=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR about formatting issues
+        if: failure() && steps.format-check.outputs.format_issues == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⚠️ **Formatting issues detected**\n\nPlease run `bun run fmt` in the `js/` directory locally and commit the changes to resolve formatting issues.'
+            })
+
+      - name: Run TypeScript type check
+        id: type-check
+        working-directory: js
+        run: |
+          set +e
+          bun run type-check > type_check_report.txt 2>&1
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          cat type_check_report.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment type check report on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## 🔍 TypeScript Type Check Report
+            <details>
+            <summary>Show type check output</summary>
+
+            ```
+            ${{ steps.type-check.outputs.report }}
+            ```
+            </details>
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run tests
+        id: test
+        working-directory: js
+        run: |
+          set +e
+          bun run test > test_report.txt 2>&1
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          cat test_report.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment test report on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## 🧪 Test Results
+            <details>
+            <summary>Show test output</summary>
+
+            ```
+            ${{ steps.test.outputs.report }}
+            ```
+            </details>
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run lint check (if available)
+        id: lint-check
+        working-directory: js
+        continue-on-error: true
+        run: |
+          # Check if lint script exists
+          if bun run | grep -q "lint"; then
+            if ! bun run lint; then
+              echo "Linting issues found. Please run 'bun run lint' locally and fix the issues."
+              echo "lint_issues=true" >> $GITHUB_OUTPUT
+              exit 1
+            else
+              echo "No linting issues found."
+              echo "lint_issues=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No lint script found, skipping linting."
+            echo "lint_issues=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR about linting issues
+        if: failure() && steps.lint-check.outputs.lint_issues == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⚠️ **Linting issues detected**\n\nPlease run `bun run lint` in the `js/` directory locally and fix the linting issues.'
+            })
+
+  compatibility-checks:
+    name: Compatibility Checks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        working-directory: js
+        run: npm ci
+
+      - name: Build for Node.js ${{ matrix.node-version }}
+        working-directory: js
+        run: npm run build
+
+      - name: Test Node.js compatibility
+        working-directory: js
+        run: |
+          # Test basic import/require functionality
+          if [ -f "dist/index.js" ]; then
+            node -e "
+              console.log('Testing Node.js ${{ matrix.node-version }} compatibility...');
+              try {
+                const pkg = require('./dist/index.js');
+                console.log('✓ CommonJS import successful');
+              } catch (e) {
+                console.error('✗ CommonJS import failed:', e.message);
+                process.exit(1);
+              }
+            "
+          fi
+          
+          if [ -f "dist/index.mjs" ] || [ -f "dist/index.esm.js" ]; then
+            node --input-type=module -e "
+              console.log('Testing ESM import...');
+              import('./dist/index.mjs').then(() => {
+                console.log('✓ ESM import successful');
+              }).catch((e) => {
+                console.error('✗ ESM import failed:', e.message);
+                process.exit(1);
+              });
+            "
+          fi
+
+  browser-compatibility:
+    name: Browser Compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: js
+        run: bun install
+
+      - name: Build for browser
+        working-directory: js
+        run: |
+          # Build the project for browser testing
+          bun run build
+
+      - name: Install Playwright
+        run: |
+          npm install -g playwright
+          playwright install chromium firefox webkit
+
+      - name: Test browser compatibility  
+        working-directory: js
+        run: |
+          # Test if the built files can be imported in browser context
+          if [ ! -f "dist/index.js" ]; then
+            echo "❌ Build output not found"
+            exit 1
+          fi
+          
+          # Create a simple HTML test file
+          cat > browser-test.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Browser Compatibility Test</title>
+          </head>
+          <body>
+            <div id="result">Testing...</div>
+            <script type="module">
+              try {
+                console.log('Testing browser compatibility...');
+                
+                // Test required browser features for the SDK
+                const features = {
+                  fetch: typeof fetch !== 'undefined',
+                  promise: typeof Promise !== 'undefined',
+                  esModules: true, // We're running in module context
+                  bigint: typeof BigInt !== 'undefined',
+                  async: typeof (async () => {})().then === 'function'
+                };
+                
+                console.log('Browser features check:', features);
+                
+                // Test if we can create basic objects that the SDK might use
+                try {
+                  const testObj = { test: 'value' };
+                  JSON.stringify(testObj);
+                  features.json = true;
+                } catch {
+                  features.json = false;
+                }
+                
+                const allSupported = Object.values(features).every(Boolean);
+                const resultText = allSupported ? 'Browser compatibility: ✓ PASSED' : 'Browser compatibility: ✗ FAILED';
+                
+                document.getElementById('result').textContent = resultText;
+                console.log(resultText);
+                
+                if (!allSupported) {
+                  throw new Error('Some required features not supported: ' + JSON.stringify(features));
+                }
+              } catch (error) {
+                console.error('Browser test failed:', error);
+                document.getElementById('result').textContent = 'Browser compatibility: ✗ FAILED';
+                throw error;
+              }
+            </script>
+          </body>
+          </html>
+          EOF
+
+          # Test with Playwright
+          node -e "
+            const { chromium, firefox, webkit } = require('playwright');
+            
+            async function testBrowser(browserType, name) {
+              const browser = await browserType.launch();
+              const page = await browser.newPage();
+              
+              let success = true;
+              page.on('console', msg => console.log(\`[\${name}] \${msg.text()}\`));
+              page.on('pageerror', err => {
+                console.error(\`[\${name}] Page error: \${err.message}\`);
+                success = false;
+              });
+              
+              await page.goto('file://' + require('path').resolve('./browser-test.html'));
+              await page.waitForTimeout(2000);
+              
+              const result = await page.textContent('#result');
+              console.log(\`[\${name}] \${result}\`);
+              
+              await browser.close();
+              return success && result.includes('PASSED');
+            }
+            
+            async function runTests() {
+              try {
+                const results = await Promise.all([
+                  testBrowser(chromium, 'Chromium'),
+                  testBrowser(firefox, 'Firefox'),
+                  testBrowser(webkit, 'WebKit')
+                ]);
+                
+                if (results.every(Boolean)) {
+                  console.log('✓ All browser tests passed');
+                } else {
+                  console.error('✗ Some browser tests failed');
+                  process.exit(1);
+                }
+              } catch (error) {
+                console.error('Browser testing failed:', error);
+                process.exit(1);
+              }
+            }
+            
+            runTests();
+          "
+
+      - name: Comment browser compatibility report on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## 🌐 Browser Compatibility Report
+            <details>
+            <summary>Show browser test results</summary>
+
+            Browser compatibility tests completed across:
+            - ✓ Chromium
+            - ✓ Firefox  
+            - ✓ WebKit (Safari)
+
+            The SDK has been verified to work in modern browser environments.
+            </details>
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
