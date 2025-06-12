@@ -114,6 +114,11 @@ def generate_compose_hash(compose_manifest: dict) -> str:
 ### Environment Variable Encryption
 Environment variables are encrypted end-to-end using x25519 key exchange and AES-GCM encryption before being sent to the TEE environment.
 
+**Version-Specific Requirements:**
+- **For OS image version >= 0.5.0**: The `allowed_envs` field is **mandatory** when using environment variables
+- **For older image versions**: The `allowed_envs` field is optional and can be used for enhanced security
+- All environment variables used in `env_keys` must be declared in `allowed_envs` (for version >= 0.5.0)
+
 ## Deployment Method
 
 Phala Cloud uses a **provision-based deployment approach** with the V2 API:
@@ -189,6 +194,7 @@ curl -X POST "https://cloud-api.phala.network/v1/cvms/provision" \
     "teepod_id": YOUR_TEEPOD_ID_FROM_STEP2,
     "compose_file": {
       "docker_compose_file": "version: \"3.8\"\nservices:\n  app:\n    image: nginx:alpine\n    ports:\n      - \"3000:3000\"",
+      "allowed_envs": [],
       "features": ["kms"],
       "kms_enabled": true,
       "manifest_version": 2,
@@ -391,6 +397,7 @@ curl -X POST "https://cloud-api.phala.network/v1/cvms/provision" \
     "kms_id": "kms_abc123def456",
     "compose_file": {
       "docker_compose_file": "version: \"3.8\"\nservices:\n  app:\n    image: nginx:alpine\n    ports:\n      - \"3000:3000\"",
+      "allowed_envs": ["DATABASE_URL", "API_KEY"],
       "features": ["kms", "tproxy-net"],
       "kms_enabled": true,
       "manifest_version": 2,
@@ -427,6 +434,8 @@ curl -X POST "https://cloud-api.phala.network/v1/cvms/provision" \
 - For **onchain KMS** nodes: `app_id` will be `null` initially and must be configured in Step 3
 - The `app_env_encrypt_pubkey` is used for encrypting environment variables
 - `kms_info` is only present for onchain KMS nodes
+- **Version Requirement**: For OS images with version >= 0.5.0, the `allowed_envs` field in `compose_file` is **required** when using environment variables
+- For older image versions, `allowed_envs` is optional and can be used for additional security
 
 ### Step 3: Configure App Authentication (Onchain KMS Only)
 
@@ -672,6 +681,28 @@ curl -X POST "https://cloud-api.phala.network/v1/cvms" \
 ## Environment Variable Encryption
 
 Environment variables are encrypted end-to-end using x25519 key exchange and AES-GCM encryption before being sent to the TEE environment.
+
+### 🔒 Enhanced Security with allowed_envs
+
+The `allowed_envs` field is an optional security feature that can be used to whitelist environment variables:
+
+**Example usage:**
+```json
+{
+  "compose_file": {
+    "docker_compose_file": "version: '3.8'...",
+    "allowed_envs": ["DATABASE_URL", "API_KEY", "NODE_ENV"],
+    "kms_enabled": true,
+    // ... other fields
+  },
+  "env_keys": ["DATABASE_URL", "API_KEY", "NODE_ENV"]
+}
+```
+
+**Benefits:**
+- Provides an additional layer of security by explicitly defining allowed environment variables
+- Optional for all KMS types and OS image versions
+- Can help prevent accidental exposure of unintended environment variables
 
 ### Obtaining Encryption Public Keys
 
@@ -986,7 +1017,8 @@ curl -X POST "https://cloud-api.phala.network/v1/cvms/cvm-123/compose_file/provi
   -H "X-API-Key: <your-api-key>" \
   -H "Content-Type: application/json" \
   -d '{
-    "docker_compose_file": "version: \"3.8\"\nservices:\n  app:\n    image: nginx:latest\n    ports:\n      - \"3000:3000\"\n    environment:\n      - NODE_ENV=production"
+    "docker_compose_file": "version: \"3.8\"\nservices:\n  app:\n    image: nginx:latest\n    ports:\n      - \"3000:3000\"\n    environment:\n      - NODE_ENV=production",
+    "allowed_envs": ["NODE_ENV"]
   }'
 ```
 
@@ -1222,6 +1254,7 @@ curl -X POST "https://cloud-api.phala.network/v1/cvms/cvm-123/compose_file" \
   -d '{
     "compose_file": {
       "docker_compose_file": "version: \"3.8\"\nservices:\n  app:\n    image: nginx:latest\n    ports:\n      - \"3000:3000\"",
+      "allowed_envs": [],
       "features": ["kms", "tproxy-net"],
       "kms_enabled": true,
       "manifest_version": 2,
@@ -1405,6 +1438,8 @@ Before deploying, verify:
 - [ ] Sensitive data is encrypted
 - [ ] No hardcoded secrets in compose file
 - [ ] Environment variable names are valid (alphanumeric + underscore)
+- [ ] For OS image >= 0.5.0: Ensure `allowed_envs` field is present when using environment variables
+- [ ] All `env_keys` entries are also listed in `allowed_envs` (for version >= 0.5.0)
 
 **✅ Networking:**
 - [ ] Only necessary ports are exposed
@@ -1462,6 +1497,26 @@ curl -v -X POST "..." 2>&1 | tee debug.log
 }
 ```
 **Solution**: Wait 30 seconds and retry the request
+
+#### Version-Specific Errors (OS Image >= 0.5.0)
+
+**Missing allowed_envs for Version >= 0.5.0 (422)**
+```json
+{
+  "detail": "allowed_envs is required for OS image version >= 0.5.0"
+}
+```
+**Solution**: Add the `allowed_envs` field to your `compose_file` with all environment variable names
+
+**Environment Variable Not Declared (422)**
+```json
+{
+  "detail": "env_keys contains variables not declared in allowed_envs: ['SECRET_KEY']"
+}
+```
+**Solution**: Add the missing environment variable names to the `allowed_envs` array in your compose file
+
+
 
 ## Best Practices
 
