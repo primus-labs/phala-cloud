@@ -1,9 +1,6 @@
-import { ofetch, type FetchOptions, type FetchRequest } from "ofetch";
-import {
-  type SafeResult,
-  RequestError,
-  type ClientConfig,
-} from "./types/client";
+import { ofetch, type FetchOptions, type FetchRequest, type FetchError } from "ofetch";
+import { type SafeResult, RequestError, type ClientConfig } from "./types/client";
+export type { SafeResult } from "./types/client";
 
 /**
  * HTTP Client class with ofetch compatibility
@@ -125,17 +122,13 @@ export class Client {
   /**
    * Safe wrapper for any request method (zod-style result)
    */
-  private async safeRequest<T>(
-    fn: () => Promise<T>,
-  ): Promise<SafeResult<T, RequestError>> {
+  private async safeRequest<T>(fn: () => Promise<T>): Promise<SafeResult<T, RequestError>> {
     try {
       const data = await fn();
       return { success: true, data };
     } catch (error) {
       if (error && typeof error === "object" && "data" in error) {
-        const requestError = RequestError.fromFetchError(
-          error as import("ofetch").FetchError,
-        );
+        const requestError = RequestError.fromFetchError(error as FetchError);
         return { success: false, error: requestError };
       }
       if (error instanceof Error) {

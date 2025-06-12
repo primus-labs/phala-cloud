@@ -23,9 +23,15 @@ export const ApiErrorSchema = z.object({
 export type ApiError = z.infer<typeof ApiErrorSchema>;
 
 /**
- * Result type for safe operations, similar to zod's SafeParseResult
+ * Enhanced error type that includes both HTTP and validation errors
  */
-export type SafeResult<T, E = RequestError> =
+export type SafeError = RequestError | z.ZodError;
+
+/**
+ * Result type for safe operations, similar to zod's SafeParseResult
+ * Enhanced to handle both HTTP and validation errors by default
+ */
+export type SafeResult<T, E = SafeError> =
   | { success: true; data: T; error?: never }
   | { success: false; data?: never; error: E };
 
@@ -35,6 +41,7 @@ export type SafeResult<T, E = RequestError> =
  */
 export class RequestError extends Error implements ApiError {
   public readonly name = "RequestError";
+  public readonly isRequestError = true as const; // Type discriminator
   public readonly status?: number | undefined;
   public readonly statusText?: string | undefined;
   public readonly data?: unknown;
