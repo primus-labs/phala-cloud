@@ -8,10 +8,14 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-    "test": "vitest --run",
-    "lint": "biome lint",
-    "format": "biome format --write",
     "fmt": "biome format --write",
+    "test": "vitest --run --exclude '**/*.integration.test.ts'",
+    "test:integration": "vitest --run '**/*.integration.test.ts'",
+    "test:watch": "vitest",
+    "test:all": "vitest --run",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "check": "npm run lint && npm run format:check && npm run test",
     "type-check": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },
