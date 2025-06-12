@@ -137,11 +137,22 @@ export class RequestError extends Error implements ApiError {
 
 /**
  * Client configuration - extends FetchOptions and adds predefined API-specific options
+ *
+ * Environment Variables:
+ * - PHALA_CLOUD_API_KEY: API key for authentication
+ * - PHALA_CLOUD_API_PREFIX: Base URL prefix for the API
  */
 export interface ClientConfig extends FetchOptions {
-  /** API key for authentication */
-  apiKey: string;
-  /** Base URL for the API (overrides FetchOptions baseURL) */
+  /**
+   * API key for authentication
+   * If not provided, will read from PHALA_CLOUD_API_KEY environment variable
+   */
+  apiKey?: string;
+  /**
+   * Base URL for the API (overrides FetchOptions baseURL)
+   * If not provided, will read from PHALA_CLOUD_API_PREFIX environment variable
+   * Defaults to "https://cloud-api.phala.network/v1"
+   */
   baseURL?: string;
   /** Default timeout in milliseconds (overrides FetchOptions timeout) */
   timeout?: number;
