@@ -134,7 +134,7 @@
     "id": "mcp-server-fetch",
     "name": "MCP Server Fetch",
     "description": "A MCP server deployed on Phala Cloud that enables AI agents to fetch real-time data from a given URL.",
-    "repo": "https://github.com/Phala-Network/mcp-servers/tree/main/src/fetch",
+    "repo": "https://github.com/Leechael/mcp-servers/tree/main/src/fetch",
     "author": "Leechael",
     "icon": "mcp-fetch.png",
     "tags": ["MCP"]
@@ -143,7 +143,7 @@
     "id": "mcp-server-sequential-thinking",
     "name": "MCP Server Sequential Thinking",
     "description": "A MCP server deployed on Phala Cloud that enables AI agents to think sequentially.",
-    "repo": "https://github.com/Phala-Network/mcp-servers/tree/main/src/sequentialthinking",
+    "repo": "https://github.com/Leechael/mcp-servers/tree/main/src/sequentialthinking",
     "author": "Leechael",
     "tags": ["MCP"]
   },
