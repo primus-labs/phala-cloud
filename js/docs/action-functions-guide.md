@@ -1,487 +1,344 @@
 # Action Functions Development Guide
 
-A comprehensive guide for creating consistent, type-safe, and well-tested action functions in the Phala Cloud SDK.
+**Requirements**: Every action function MUST include unit tests AND e2e tests covering all branches, error scenarios, and type inference.
 
-## Overview
+## Core Architecture
 
-**Every action function implementation MUST include both unit tests and end-to-end (e2e) tests.** These tests must cover all major branches, error branches, and type inference scenarios. This ensures not only the correctness of the action itself, but also the robustness of error handling and forward compatibility. All new actions will not be considered complete unless both unit and e2e tests are provided and pass.
+### Action Types
+- **HTTP Actions**: API calls via HTTP client
+- **Blockchain Actions**: Direct blockchain operations via viem
+- **Hybrid Actions**: Combined HTTP + blockchain operations
 
-Action functions are the primary interface for SDK users to interact with the Phala Cloud API. They provide a clean, typed abstraction over HTTP requests with built-in validation, error handling, and comprehensive testing.
-
-## Core Principles
-
-### Dual API Pattern
-Every action should provide two versions:
-- **Standard version**: Throws errors for traditional try/catch handling
-- **Safe version**: Returns `SafeResult<T>` for functional error handling
-
-### Type-Safe Schema Validation
-- Use Zod schemas for runtime validation with TypeScript inference.
-- Always align Zod schemas with backend (Python/Pydantic) models.
-- For optional fields, use `.optional()` or `.nullable().optional()` as appropriate.
-- Top-level schemas must use `.passthrough()` for forward compatibility.
-
-### Intelligent Type Inference
-- Use TypeScript conditional types to provide smart return type inference based on parameters.
-- Type inference tests should use type-level assertions, not generic invocation.
+### Required Patterns
+1. **Dual API**: Standard (throws) + Safe (returns `SafeResult<T>`)
+2. **Type-Safe Schemas**: Zod validation with TypeScript inference
+3. **Conditional Types**: Smart return type inference based on parameters
 
 ## File Structure
-
 ```
 src/actions/
-├── index.ts                    # Export all actions
-├── {action_name}.ts           # Action implementation
+├── {action_name}.ts           # Implementation
 ├── {action_name}.test.ts      # Unit tests (REQUIRED)
-└── {action_name}.e2e.test.ts   # End-to-end (integration) tests (REQUIRED)
+└── {action_name}.e2e.test.ts  # E2E tests (REQUIRED)
 ```
 
-## Implementation Template
+## Implementation Templates
 
-### 1. Basic Structure
+### HTTP Action Template
 
 ```typescript
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
 
 /**
- * {Action description}
- *
- * {Detailed description of what this action does}
- *
+ * Brief action description
+ * 
  * @example
  * ```typescript
- * import { createClient, {actionName} } from '@phala/cloud'
- *
- * // Using environment variables (PHALA_CLOUD_API_KEY)
- * const client = createClient()
- * // Or explicit configuration
- * const client = createClient({ apiKey: 'your-api-key' })
+ * import { createClient, myAction } from '@phala/cloud'
  * 
- * const result = await {actionName}(client)
- * // Output: { ... }
- * ```
- *
- * ## Returns
- *
- * `{ReturnType} | unknown`
- *
- * {Description of return value}. Return type depends on schema parameter.
- *
- * ## Parameters
- *
- * ### schema (optional)
- *
- * - **Type:** `ZodSchema | false`
- * - **Default:** `{ActionName}Schema`
- *
- * Schema to validate the response. Use `false` to return raw data without validation.
- *
- * ```typescript
- * // Use default schema
- * const result = await {actionName}(client)
- *
- * // Return raw data without validation
- * const raw = await {actionName}(client, { schema: false })
- *
- * // Use custom schema
- * const customSchema = z.object({ id: z.number(), name: z.string() })
- * const custom = await {actionName}(client, { schema: customSchema })
- * ```
- *
- * ## Safe Version
- *
- * Use `safe{ActionName}` for error handling without exceptions:
- *
- * ```typescript
- * import { safe{ActionName} } from '@phala/cloud'
- *
- * const result = await safe{ActionName}(client)
- * if (result.success) {
- *   console.log(result.data)
- * } else {
- *   if ("isRequestError" in result.error) {
- *     console.error(`HTTP ${result.error.status}: ${result.error.message}`)
- *   } else {
- *     console.error(`Validation error: ${result.error.issues}`)
- *   }
- * }
+ * const client = createClient({ apiKey: 'your-key' })
+ * const result = await myAction(client, { param: 'value' })
  * ```
  */
 
-// Zod schema definition (align with backend, use .optional()/.nullable() for optional fields)
-export const {ActionName}Schema = z
-  .object({
-    // Define schema fields
-  })
-  .passthrough();
+// Schema: align with backend, use .optional()/.nullable(), add .passthrough()
+export const MyActionSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+}).passthrough();
 
-export type {ActionName} = z.infer<typeof {ActionName}Schema>;
+export type MyAction = z.infer<typeof MyActionSchema>;
 
-// Conditional types for intelligent type inference
-export type {ActionName}Parameters<T = undefined> = T extends z.ZodSchema
-  ? { schema: T }
-  : T extends false
-    ? { schema: false }
-    : { schema?: z.ZodSchema | false };
+// Conditional types for type inference
+export type MyActionParameters<T = undefined> = {
+  param: string;
+} & (T extends z.ZodSchema ? { schema: T } : T extends false ? { schema: false } : { schema?: z.ZodSchema | false });
 
-export type {ActionName}ReturnType<T = undefined> = T extends z.ZodSchema
-  ? z.infer<T>
-  : T extends false
-    ? unknown
-    : {ActionName};
+export type MyActionReturnType<T = undefined> = T extends z.ZodSchema
+  ? z.infer<T> : T extends false ? unknown : MyAction;
 
-// Standard version (throws on error)
-export async function {actionName}<T extends z.ZodSchema | false | undefined = undefined>(
+// Standard version (throws)
+export async function myAction<T extends z.ZodSchema | false | undefined = undefined>(
   client: Client,
-  parameters?: {ActionName}Parameters<T>,
-): Promise<{ActionName}ReturnType<T>> {
-  const response = await client.get("{api_endpoint}");
-
-  if (parameters?.schema === false) {
-    return response as {ActionName}ReturnType<T>;
+  params: MyActionParameters<T>
+): Promise<MyActionReturnType<T>> {
+  const response = await client.post("/api/endpoint", params);
+  
+  if (params.schema === false) {
+    return response as MyActionReturnType<T>;
   }
-
-  const schema = (parameters?.schema || {ActionName}Schema) as z.ZodSchema;
-  return schema.parse(response) as {ActionName}ReturnType<T>;
+  
+  const schema = (params.schema || MyActionSchema) as z.ZodSchema;
+  return schema.parse(response) as MyActionReturnType<T>;
 }
 
 // Safe version (returns SafeResult)
-export async function safe{ActionName}<T extends z.ZodSchema | false | undefined = undefined>(
+export async function safeMyAction<T extends z.ZodSchema | false | undefined = undefined>(
   client: Client,
-  parameters?: {ActionName}Parameters<T>,
-): Promise<SafeResult<{ActionName}ReturnType<T>>> {
-  const httpResult = await client.safeGet("{api_endpoint}");
-
+  params: MyActionParameters<T>
+): Promise<SafeResult<MyActionReturnType<T>>> {
+  const httpResult = await client.safePost("/api/endpoint", params);
+  
   if (!httpResult.success) {
-    return httpResult as SafeResult<{ActionName}ReturnType<T>>;
+    return httpResult as SafeResult<MyActionReturnType<T>>;
   }
-
-  if (parameters?.schema === false) {
-    return { success: true, data: httpResult.data } as SafeResult<{ActionName}ReturnType<T>>;
+  
+  if (params.schema === false) {
+    return { success: true, data: httpResult.data } as SafeResult<MyActionReturnType<T>>;
   }
-
-  const schema = (parameters?.schema || {ActionName}Schema) as z.ZodSchema;
-  return schema.safeParse(httpResult.data) as SafeResult<{ActionName}ReturnType<T>>;
+  
+  const schema = (params.schema || MyActionSchema) as z.ZodSchema;
+  return schema.safeParse(httpResult.data) as SafeResult<MyActionReturnType<T>>;
 }
 ```
 
-### 2. Schema Design
-
-- **Align with backend:** Always match the backend (Python/Pydantic) model fields and types.
-- **Optional fields:** Use `.optional()` or `.nullable().optional()` for any field that is not always present.
-- **Forward compatibility:** Always add `.passthrough()` to the top-level schema. Add tests to ensure extra fields in the API response do not cause validation failures.
-
-#### API Contract Verification
-
-**Critical**: Always verify the actual API contract before implementing schemas. A common pitfall is assuming data structures without testing.
+### Blockchain Action Template
 
 ```typescript
-// ⚠️ Example: Don't assume complex structures
-// Documentation might show: "encrypted_env": "hex-encoded-string"
-// But implementer might assume:
-encrypted_env: z.array(z.object({ key: z.string(), value: z.string() })) // ❌ Wrong!
+import { z } from "zod";
+import { type Chain, type Address, type Hex, createPublicClient, createWalletClient } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { type SafeResult } from "../client";
+import { 
+  type NetworkClients, validateNetworkPrerequisites, createTransactionTracker,
+  executeTransactionWithRetry, type RetryOptions, type TransactionOptions 
+} from "../utils";
 
-// ✅ Always verify with actual API testing first:
-encrypted_env: z.string() // Correct - backend expects hex string
-```
+// Schema with conditional validation
+const BlockchainActionSchema = z.object({
+  chain: z.unknown().optional(),
+  contractAddress: z.string(),
+  privateKey: z.string().optional(),
+  walletClient: z.unknown().optional(),
+  publicClient: z.unknown().optional(),
+  timeout: z.number().optional().default(120000),
+  retryOptions: z.unknown().optional(),
+}).refine((data) => {
+  // XOR: privateKey OR walletClient, not both
+  return !!data.privateKey !== !!data.walletClient;
+}, { message: "Provide either 'privateKey' or 'walletClient', not both" })
+.refine((data) => {
+  // Chain required when clients not provided
+  return !!(data.publicClient && data.walletClient) || !!data.chain;
+}, { message: "Chain required when publicClient or walletClient missing" });
 
-**Schema Design Checklist:**
-- [ ] Check API documentation examples for actual JSON payloads
-- [ ] Test minimal payload with real API to understand expected format  
-- [ ] Pay attention to error messages (e.g., `"Input should be a valid string"` = type mismatch)
-- [ ] Cross-reference with similar endpoints for consistency
-- [ ] Document reasoning with comments in schema definitions
-
-**Common Error Patterns:**
-| Backend Error | Likely Cause | Solution |
-|---------------|--------------|----------|
-| `"Input should be a valid string"` | Field expects string, got array/object | Change to `z.string()` |
-| `"Field required"` | Missing required field | Add field or make optional |
-| `"non-hexadecimal number found in fromhex()"` | Invalid hex format | Use valid hex data |
-
-### 3. Type Inference
-
-- Use TypeScript conditional types for parameterized return types.
-- In tests, use type-level assertions for type inference:
-
-```typescript
-type T = Awaited<ReturnType<typeof getXxx>>;
-const isExpected: T extends ExpectedType ? true : false = true;
-expect(isExpected).toBe(true);
-```
-
-## Testing Structure
-
-**Every action function MUST have both a unit test and an e2e test.**
-
-### Unit Tests (`{action_name}.test.ts`)
-
-- **Standard version:**
-  - Returns data successfully
-  - Validates response data with Zod schema
-  - Handles API errors (throws)
-  - Returns raw data when schema is false
-  - Uses custom schema when provided
-  - Throws when custom schema validation fails
-- **Safe version:**
-  - Returns success result when API call succeeds
-  - Returns error result when API call fails
-  - Handles Zod validation errors
-  - Passes through HTTP errors directly
-  - Returns raw data when schema is false
-  - Uses custom schema when provided
-  - Returns validation error when custom schema fails
-- **Parameter handling:**
-  - Works without parameters (if allowed)
-  - Works with empty parameters object (if allowed)
-  - Works with safe version without parameters (if allowed)
-  - Works with safe version with empty parameters object (if allowed)
-- **Schema flexibility:**
-  - Allows extra fields in API response for forward compatibility
-- **Type inference:**
-  - Infers correct types for default, unknown, and custom schema
-- **Safe version type inference:**
-  - Infers correct SafeResult types for all parameterizations
-
-#### SafeResult Error Type Branching in Tests
-When testing safe action functions, the `error` field in the result can be either an HTTP error (RequestError) or a Zod validation error (ZodError). **Always use `"isRequestError" in result.error` to distinguish the type before accessing properties.**
-
-### End-to-End Tests (`{action_name}.e2e.test.ts`)
-
-- **E2E tests must dynamically fetch available parameters (such as teepod_id, image, etc.) using other actions (e.g., getAvailableNodes) instead of hardcoding values.**
-- Should call the real API and assert the main fields are present.
-- Should skip if required environment variables (e.g., API key) are not set.
-- **E2E tests must include error scenarios for all status codes in the range >= 400 and <= 500 (client and server errors). This includes, but is not limited to, 400/401/403/404/422/429/500. You must intentionally pass invalid parameters and assert that the SDK returns/throws the correct error type, status, and detail.**
-- Should output or assert error.detail and error.status for HTTP errors, and error.issues for validation errors.
-
-#### E2E Test Data Quality
-
-**Critical**: Use realistic test data that mirrors actual API usage. Poor test data can mask real integration issues.
-
-```typescript
-// ❌ Poor E2E test data that will fail backend parsing
-const badPayload = {
-  encrypted_env: "mock_non_hex_string", // Invalid format
-  app_id: "test-app-id"                 // Too short
+export type BlockchainActionRequest = {
+  chain?: Chain;
+  contractAddress: Address;
+  privateKey?: Hex;
+  walletClient?: WalletClient;
+  publicClient?: PublicClient;
+  timeout?: number;
+  retryOptions?: RetryOptions;
+  onTransactionSubmitted?: (hash: Hash) => void;
+  onTransactionConfirmed?: (receipt: TransactionReceipt) => void;
 };
 
-// ✅ Quality E2E test data using valid formats
-const goodPayload = {
-  encrypted_env: "deadbeef1234567890abcdef1234567890abcdef", // Valid hex
-  app_id: "1234567890abcdef1234567890abcdef12345678"        // Correct length
-};
+export async function blockchainAction(request: BlockchainActionRequest) {
+  const validated = BlockchainActionSchema.parse(request);
+  
+  // Create clients
+  let publicClient: PublicClient, walletClient: WalletClient, address: Address;
+  
+  if (validated.privateKey) {
+    const account = privateKeyToAccount(validated.privateKey as Hex);
+    publicClient = validated.publicClient as PublicClient || 
+      createPublicClient({ chain: validated.chain as Chain, transport: http() });
+    walletClient = createWalletClient({
+      account, chain: validated.chain as Chain, transport: http()
+    });
+    address = account.address;
+  } else {
+    walletClient = validated.walletClient as WalletClient;
+    publicClient = validated.publicClient as PublicClient ||
+      createPublicClient({ chain: validated.chain as Chain, transport: http() });
+    address = walletClient.account!.address;
+  }
+  
+  const networkClients: NetworkClients = { publicClient, walletClient, address, chainId: (validated.chain as Chain).id };
+  
+  // Validate prerequisites
+  await validateNetworkPrerequisites(networkClients, {
+    targetChainId: networkClients.chainId,
+    minBalance: parseEther("0.001")
+  });
+  
+  // Execute transaction
+  const operation = async (clients: NetworkClients) => {
+    return await clients.walletClient.writeContract({
+      address: validated.contractAddress as Address,
+      abi: yourContractAbi,
+      functionName: "yourFunction",
+      args: [],
+    });
+  };
+  
+  const tracker = createTransactionTracker();
+  const result = validated.retryOptions 
+    ? await executeTransactionWithRetry(operation, networkClients, [], {
+        timeout: validated.timeout!, confirmations: 1,
+        onSubmitted: validated.onTransactionSubmitted,
+        onConfirmed: validated.onTransactionConfirmed,
+      }, validated.retryOptions)
+    : await tracker.execute(operation, networkClients, [], {
+        timeout: validated.timeout!, confirmations: 1,
+        onSubmitted: validated.onTransactionSubmitted,
+        onConfirmed: validated.onTransactionConfirmed,
+      });
+  
+  return parseBlockchainResult(result.receipt);
+}
 ```
 
-#### Debugging E2E Failures
+## Testing Requirements
 
-When E2E tests fail with HTTP errors, add debug logging to understand the issue:
+### Unit Tests (`{action}.test.ts`)
+**Required Coverage:**
+- Standard & safe versions (success/error paths)
+- Schema validation (default/custom/false)
+- Parameter handling (empty/missing)
+- Type inference verification
+- **SafeError type guards**: ALWAYS use `"isRequestError" in result.error` before accessing `.status`
 
+```typescript
+// ❌ WRONG: Causes TypeScript error
+expect(result.error.status).toBe(404);
+
+// ✅ CORRECT: Required type guard
+if ("isRequestError" in result.error && result.error.isRequestError) {
+  expect(result.error.status).toBe(404);
+}
+```
+
+### E2E Tests (`{action}.e2e.test.ts`)
+**Required Coverage:**
+- Real API calls with dynamic parameters (fetch via other actions)
+- All HTTP error codes 400-500 with intentionally invalid data
+- Skip when env vars missing
+
+```typescript
+describe("E2E Error Scenarios", () => {
+  test("400 Bad Request", async () => {
+    const result = await safeMyAction(client, { invalid: "data" });
+    expect(result.success).toBe(false);
+    if ("isRequestError" in result.error) {
+      expect(result.error.status).toBe(400);
+    }
+  });
+});
+```
+
+## Parameter Evolution Guide
+
+### Renaming Parameters: Mandatory Checklist
+
+**Files to Update:**
+- [ ] `{action}.ts`: Types, JSDoc, examples, error messages
+- [ ] `{action}.test.ts`: All parameter usage, error expectations
+- [ ] `{action}.e2e.test.ts`: All test scenarios, variable names
+
+**Example Rename Process:**
+```typescript
+// Before
+{ identifier: "cvm-123" }
+
+// After  
+{ cvm_id: "cvm-123" }
+
+// Internal transformation for API compatibility
+const apiParams = { identifier: params.cvm_id };
+```
+
+**Systematic Updates:**
+```bash
+# Find affected files
+find . -name "*{action}*.test.ts"
+
+# Update with sed
+sed -i 's/identifier:/cvm_id:/g' *.test.ts
+
+# Verify changes
+npm test -- --grep "{action}"
+```
+
+## Schema Design Rules
+
+### API Contract Verification
+**CRITICAL**: Test real API before implementing schemas
+
+```typescript
+// ❌ Wrong: Assuming structure
+encrypted_env: z.array(z.object({ key: z.string(), value: z.string() }))
+
+// ✅ Correct: Verify API returns string
+encrypted_env: z.string() // Backend expects hex string
+```
+
+### Schema Patterns
+```typescript
+// Required patterns
+export const MySchema = z.object({
+  required_field: z.string(),
+  optional_field: z.string().optional(),
+  nullable_field: z.string().nullable().optional(),
+}).passthrough(); // Forward compatibility
+```
+
+## Common Patterns
+
+### Path Parameters
+```typescript
+export async function getUser(client: Client, userId: string, params?: GetUserParams) {
+  return client.get(`/users/${userId}`);
+}
+```
+
+### Query Parameters  
+```typescript
+export type ListParams = { page?: number; limit?: number; };
+```
+
+### Body Parameters
+```typescript
+export type CreateParams = { body: { name: string; email: string; }; };
+```
+
+## Error Handling Best Practices
+
+### Use safePost/safeGet for Consistent Types
+```typescript
+// ✅ Correct: Guaranteed RequestError type
+const httpResult = await client.safePost("/endpoint", data);
+if (!httpResult.success) {
+  throw httpResult.error; // RequestError with isRequestError: true
+}
+
+// ❌ Wrong: Throws FetchError, not RequestError  
+const response = await client.post("/endpoint", data);
+```
+
+### Debugging E2E Failures
 ```typescript
 try {
   const result = await myAction(client, payload);
 } catch (err: any) {
-  // Debug the actual request/response
-  console.log("📋 Request payload:", JSON.stringify(payload, null, 2));
-  console.log("⚠️ Error details:", JSON.stringify(err, null, 2));
-  
-  // Check key indicators:
-  // - err.status: HTTP status code
-  // - err.detail: Backend validation messages  
-  // - err.message: General error description
+  console.log("📋 Payload:", JSON.stringify(payload, null, 2));
+  console.log("⚠️ Error:", { status: err.status, detail: err.detail });
 }
 ```
 
-### Test Coverage Checklist
-For every action function, unit and e2e tests must cover:
-- Standard schema validation
-- API errors (exception thrown)
-- SafeResult success and failure branches
-- Zod validation errors
-- HTTP error passthrough
-- Parameter handling (no parameters, empty object, custom schema, schema: false)
-- Forward compatibility (extra fields in response)
-- Type inference (default, unknown, custom schema)
-- **E2E: error scenarios for all status codes >= 400 and <= 500 must be tested (client and server errors)**
+## Pre-Implementation Checklist
 
-## Best Practices
+**Prevent Rework:**
+- [ ] Parameter names user-friendly? (`cvm_id` not `identifier`)
+- [ ] SafeError type guards planned?
+- [ ] Test update scope identified?
+- [ ] Real API contract verified?
+- [ ] Error messages actionable?
 
-- Use conditional types for intelligent type inference.
-- Prefer single-line function signatures when possible.
-- Keep parameter names consistent (`parameters` not `options`).
-- Use descriptive variable names.
-- Always support both error patterns (throw vs SafeResult).
-- Use discriminated unions for error type detection in tests.
-- Provide meaningful error messages.
-- Export all relevant types for consumer use.
-- Aim for 100% code coverage.
-- Mock external dependencies properly.
-- Include edge cases and boundary conditions.
-- Consider schema validation performance for large responses.
-- **API Contract First**: Always test real API endpoints before implementing schemas to avoid type mismatches.
-- **Quality Test Data**: Use realistic, valid test data that mirrors production API usage.
-- **Document Schema Decisions**: Add comments explaining non-obvious schema choices based on API testing.
-- **Error Message Analysis**: Learn to quickly identify backend validation errors for efficient debugging.
-
-## Common Patterns
-
-### With Body Parameters
-For POST/PUT operations that require request bodies:
-
-```typescript
-export type CreateUserParameters<T = undefined> = {
-  body: {
-    name: string;
-    email: string;
-  };
-} & (T extends z.ZodSchema
-  ? { schema: T }
-  : T extends false
-    ? { schema: false }
-    : { schema?: z.ZodSchema | false });
-```
-
-### With Query Parameters
-For operations that accept query parameters:
-
-```typescript
-export type ListUsersParameters<T = undefined> = {
-  page?: number;
-  limit?: number;
-} & (T extends z.ZodSchema
-  ? { schema: T }
-  : T extends false
-    ? { schema: false }
-    : { schema?: z.ZodSchema | false });
-```
-
-### With Path Parameters
-For operations with dynamic path segments:
-
-```typescript
-export async function getUser<T extends z.ZodSchema | false | undefined = undefined>(
-  client: Client,
-  userId: string,
-  parameters?: GetUserParameters<T>,
-): Promise<GetUserReturnType<T>> {
-  const response = await client.get(`/users/${userId}`);
-  // ... rest of implementation
-}
-```
-
-## Advanced Patterns
-
-### Compatibility and Field Migration
-
-When API fields need to be renamed or deprecated, implement compatibility layers to ensure smooth migration:
-
-#### Input Parameter Compatibility
-```typescript
-// Support both old and new field names in request
-export type MyActionRequest = {
-  new_field?: string;     // recommended
-  old_field?: string;     // deprecated, for compatibility
-};
-
-// Compatibility handler function
-function handleFieldCompatibility(input: MyActionRequest): MyActionRequest {
-  if (!input.old_field && !input.new_field) {
-    return input;
-  }
-  
-  const result = { ...input };
-  
-  // If both provided, prefer new field
-  if (typeof result.new_field === "string" && typeof result.old_field === "string") {
-    delete result.old_field;
-  }
-  // If only old field provided, convert and warn
-  else if (typeof result.old_field === "string" && typeof result.new_field === "undefined") {
-    result.new_field = result.old_field;
-    delete result.old_field;
-    console.warn("[sdk] old_field is deprecated, please use new_field instead.");
-  }
-  
-  return result;
-}
-```
-
-#### Response Field Transformation
-```typescript
-// Transform backend response fields for better user experience
-function transformResponse(data: any, isDefaultSchema: boolean): any {
-  if (!isDefaultSchema || !data || typeof data !== "object") {
-    return data;
-  }
-  
-  // Transform backend field names to user-friendly names
-  if ("backend_field_name" in data) {
-    const { backend_field_name, ...rest } = data;
-    return { ...rest, user_friendly_name: backend_field_name };
-  }
-  
-  return data;
-}
-```
-
-### Parameter Preprocessing
-
-For complex actions that need parameter validation or transformation:
-
-```typescript
-// Auto-fill missing required fields
-function autofillDefaults(params: MyActionParams): MyActionParams {
-  if (params.config && !params.config.name) {
-    return {
-      ...params,
-      config: {
-        ...params.config,
-        name: params.defaultName || "auto-generated",
-      },
-    };
-  }
-  return params;
-}
-
-// Chain multiple preprocessing functions
-export async function myAction<T extends z.ZodSchema | false | undefined = undefined>(
-  client: Client,
-  params: MyActionParams,
-  options?: MyActionOptions<T>,
-): Promise<MyActionReturnType<T>> {
-  // Apply preprocessing in order
-  const processedParams = handleFieldCompatibility(
-    autofillDefaults(params)
-  );
-  
-  // Continue with API call...
-}
-```
-
-### Error Handling Best Practices
-
-#### Use safePost/safeGet for Consistent Error Types
-
-Always use the `safe*` methods in action implementations to ensure consistent error handling:
-
-```typescript
-// ✅ Correct: Use safePost for consistent RequestError type
-export async function myAction<T extends z.ZodSchema | false | undefined = undefined>(
-  client: Client,
-  data: MyActionData,
-  parameters?: MyActionParameters<T>,
-): Promise<MyActionReturnType<T>> {
-  const httpResult = await client.safePost("/api/endpoint", data);
-  
-  if (!httpResult.success) {
-    throw httpResult.error; // This is guaranteed to be RequestError with isRequestError: true
-  }
-  
-  // Continue with response processing...
-}
-
-// ❌ Incorrect: Using post directly throws FetchError, not RequestError
-export async function myAction(client: Client, data: MyActionData) {
-  const response = await client.post("/api/endpoint", data); // Throws FetchError
-  return response;
-}
-```
+**Red Flags:**
+- Copying API parameter names directly
+- Skipping real API testing
+- Assuming data structures
+- Missing SafeError type guards 
