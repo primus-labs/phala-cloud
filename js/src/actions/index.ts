@@ -69,3 +69,14 @@ export {
   GetCvmComposeFileResultSchema,
   type GetCvmComposeFileResult,
 } from "./get_cvm_compose_file";
+
+export {
+  provisionCvmComposeFileUpdate,
+  safeProvisionCvmComposeFileUpdate,
+  type ProvisionCvmComposeFileUpdateParameters,
+  type ProvisionCvmComposeFileUpdateReturnType,
+  ProvisionCvmComposeFileUpdateRequestSchema,
+  type ProvisionCvmComposeFileUpdateRequest,
+  ProvisionCvmComposeFileUpdateResultSchema,
+  type ProvisionCvmComposeFileUpdateResult,
+} from "./provision_cvm_compose_file_update";
