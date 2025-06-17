@@ -80,3 +80,14 @@ export {
   ProvisionCvmComposeFileUpdateResultSchema,
   type ProvisionCvmComposeFileUpdateResult,
 } from "./provision_cvm_compose_file_update";
+
+export {
+  commitCvmComposeFileUpdate,
+  safeCommitCvmComposeFileUpdate,
+  type CommitCvmComposeFileUpdateParameters,
+  type CommitCvmComposeFileUpdateReturnType,
+  CommitCvmComposeFileUpdateRequestSchema,
+  type CommitCvmComposeFileUpdateRequest,
+  CommitCvmComposeFileUpdateSchema,
+  type CommitCvmComposeFileUpdate,
+} from "./commit_cvm_compose_file_update";
