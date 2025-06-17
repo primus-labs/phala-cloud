@@ -60,3 +60,12 @@ export {
   type AddComposeHashRequest,
   type SafeAddComposeHashResult,
 } from "./add_compose_hash";
+
+export {
+  getCvmComposeFile,
+  safeGetCvmComposeFile,
+  type GetCvmComposeFileParameters,
+  type GetCvmComposeFileReturnType,
+  GetCvmComposeFileResultSchema,
+  type GetCvmComposeFileResult,
+} from "./get_cvm_compose_file";
