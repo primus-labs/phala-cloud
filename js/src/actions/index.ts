@@ -49,3 +49,14 @@ export {
   type DeployAppAuthRequest,
   type SafeDeployAppAuthResult,
 } from "./deploy_app_auth";
+
+export {
+  addComposeHash,
+  safeAddComposeHash,
+  type AddComposeHashParameters,
+  type AddComposeHashReturnType,
+  AddComposeHashSchema,
+  type AddComposeHash,
+  type AddComposeHashRequest,
+  type SafeAddComposeHashResult,
+} from "./add_compose_hash";
