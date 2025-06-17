@@ -31,7 +31,7 @@ export interface AppCompose extends SortableObject {
   pre_launch_script?: string;
 }
 
-function preprocess_compose(dic: AppCompose): AppCompose {
+function preprocessAppCompose(dic: AppCompose): AppCompose {
   const obj: AppCompose = { ...dic };
   if (obj.runner === "bash" && "docker_compose_file" in obj) {
     delete obj.docker_compose_file;
@@ -44,15 +44,15 @@ function preprocess_compose(dic: AppCompose): AppCompose {
   return obj;
 }
 
-function dump_app_compose(dic: AppCompose): string {
+function dumpAppCompose(dic: AppCompose): string {
   const ordered = sortObject(dic);
   let json = JSON.stringify(ordered, null, 4);
   json = json.replace(/": /g, '":');
   return json;
 }
 
-export function get_compose_hash(app_compose: AppCompose): string {
-  const preprocessed = preprocess_compose(app_compose);
-  const manifest_str = dump_app_compose(preprocessed);
+export function getComposeHash(app_compose: AppCompose): string {
+  const preprocessed = preprocessAppCompose(app_compose);
+  const manifest_str = dumpAppCompose(preprocessed);
   return crypto.createHash("sha256").update(manifest_str, "utf8").digest("hex");
 }

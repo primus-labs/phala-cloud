@@ -37,3 +37,15 @@ export {
   CommitCvmProvisionRequestSchema,
   type CommitCvmProvisionRequest,
 } from "./commit_cvm_provision";
+
+export {
+  deployAppAuth,
+  safeDeployAppAuth,
+  type DeployAppAuthParameters,
+  type DeployAppAuthReturnType,
+  DeployAppAuthSchema,
+  type DeployAppAuth,
+  DeployAppAuthRequestSchema,
+  type DeployAppAuthRequest,
+  type SafeDeployAppAuthResult,
+} from "./deploy_app_auth";
