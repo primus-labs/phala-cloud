@@ -65,6 +65,30 @@ def validate_schema(config: List[Dict], schema: Dict) -> List[Dict]:
     
     return schema_errors
 
+def validate_json_format(config: List[Dict]) -> bool:
+    """Validate that the config is valid JSON format."""
+    try:
+        # This is already validated by load_json_file, but we can add additional checks here
+        if not isinstance(config, list):
+            print("Error: Config must be a list of objects")
+            return False
+        
+        for i, entry in enumerate(config):
+            if not isinstance(entry, dict):
+                print(f"Error: Entry {i} must be an object")
+                return False
+        
+        return True
+    except Exception as e:
+        print(f"Error validating JSON format: {e}")
+        return False
+
+def validate_duplicate_ids(entries: List[Dict]) -> List[str]:
+    """Check for duplicate template IDs."""
+    ids = [entry.get("id") for entry in entries if entry.get("id")]
+    duplicates = [id for id in set(ids) if ids.count(id) > 1]
+    return duplicates
+
 def validate_icons(entries: List[Dict]) -> List[Dict]:
     """Validate that each entry with a icon field has the corresponding file."""
     icons_dir = get_icons_directory()
@@ -111,11 +135,31 @@ def validate_icons(entries: List[Dict]) -> List[Dict]:
 
 def main():
     print("Validating Phala Cloud templates...")
+    
+    # Step 1: Load files
     print("1. Loading files...")
     config = load_config()
     schema = load_schema()
     
-    print("2. Validating JSON schema...")
+    # Step 2: Validate JSON format
+    print("2. Validating JSON format...")
+    if not validate_json_format(config):
+        print("❌ JSON format validation failed!")
+        sys.exit(1)
+    else:
+        print("✅ JSON format is valid!")
+    
+    # Step 3: Check for duplicate IDs
+    print("3. Checking for duplicate IDs...")
+    duplicate_ids = validate_duplicate_ids(config)
+    if duplicate_ids:
+        print(f"❌ Found duplicate IDs: {duplicate_ids}")
+        sys.exit(1)
+    else:
+        print("✅ No duplicate IDs found!")
+    
+    # Step 4: Validate JSON schema
+    print("4. Validating JSON schema...")
     schema_errors = validate_schema(config, schema)
     
     if schema_errors:
@@ -123,13 +167,12 @@ def main():
         for error in schema_errors:
             print(f"  - Entry '{error['id']}' ({error['name']}): Error at '{error['path']}'")
             print(f"    {error['error']}")
-        
-        # Exit early if schema validation fails
         sys.exit(1)
     else:
         print("✅ Schema validation passed!")
     
-    print("\n3. Validating icon files...")
+    # Step 5: Validate icon files
+    print("5. Validating icon files...")
     icon_errors = validate_icons(config)
     
     if icon_errors:
@@ -143,7 +186,7 @@ def main():
     else:
         print("✅ All icon files are valid!")
     
-    print("\n✅ Validation completed successfully!")
+    print("\n✅ All validations completed successfully!")
     sys.exit(0)
 
 if __name__ == "__main__":
