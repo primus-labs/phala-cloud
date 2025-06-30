@@ -109,6 +109,7 @@
       { "key": "ELEVENLABS_API_KEY", "required": true },
       { "key": "ELEVENLABS_MCP_BASE_PATH", "required": true }
     ],
+    "icon": "elevenlabs.png",
     "tags": ["MCP"]
   },
   {
