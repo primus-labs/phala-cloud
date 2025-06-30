@@ -46,7 +46,6 @@
       { "key": "PERPLEXITY_API_KEY", "required": true },
       { "key": "COINGECKO_PRO_API_KEY", "required": true }
     ],
-    "cover": "mcp-evm.png",
     "tags": ["MCP"]
   },
   {
@@ -71,7 +70,7 @@
       { "key": "NEAR_NETWORK", "required": false },
       { "key": "NEAR_ACCOUNT_ID", "required": true }
     ],
-    "cover": "mcp-near.png",
+    "icon": "mcp-near.svg",
     "tags": ["MCP"]
   },
   {
@@ -86,7 +85,7 @@
       { "key": "RPC_URL", "required": true },
       { "key": "OPENAI_API_KEY", "required": true }
     ],
-    "cover": "mcp-solana.png",
+    "icon": "mcp-solana.svg",
     "tags": ["MCP"]
   },
   {
@@ -110,7 +109,6 @@
       { "key": "ELEVENLABS_API_KEY", "required": true },
       { "key": "ELEVENLABS_MCP_BASE_PATH", "required": true }
     ],
-    "cover": "mcp-elevenlabs.png",
     "tags": ["MCP"]
   },
   {
@@ -123,7 +121,7 @@
       { "key": "BEARER_TOKEN", "required": true },
       { "key": "SUPABASE_ACCESS_TOKEN", "required": true }
     ],
-    "cover": "mcp-supabase.png",
+    "icon": "supabase.svg",
     "tags": ["MCP"]
   },
   {
@@ -136,7 +134,7 @@
       { "key": "BEARER_TOKEN", "required": true },
       { "key": "FIGMA_API_KEY", "required": true }
     ],
-    "cover": "mcp-figma.png",
+    "icon": "mcp-figma.svg",
     "tags": ["MCP"]
   },
   {
@@ -145,7 +143,6 @@
     "description": "A MCP server deployed on Phala Cloud that enables AI agents to fetch real-time data from a given URL.",
     "repo": "https://github.com/Leechael/mcp-servers/tree/main/src/fetch",
     "author": "Leechael",
-    "icon": "mcp-fetch.png",
     "tags": ["MCP"]
   },
   {
