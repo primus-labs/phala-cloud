@@ -272,5 +272,18 @@
       { "key": "POSTGRES_PASSWORD", "required": true }
     ],
     "tags": ["Notebook"]
+  },
+  {
+    "id": "chatnio",
+    "name": "Chatnio",
+    "description": "Chatnio is a powerful AI service management platform supporting 70+ models across text, image, audio, and video. It offers flexible deployment options with comprehensive model management, multi-tenant support, and robust security controls. The platform enables efficient deployment and management of AI services at scale through an intuitive interface and powerful API.",
+    "repo": "https://github.com/coaidev/coai",
+    "author": "coaidev",
+    "icon": "chatnio.png",
+    "envs": [
+      { "key": "MYSQL_ROOT_PASSWORD", "required": true },
+      { "key": "MYSQL_PASSWORD", "required": true }
+    ],
+    "tags": ["Chat"]
   }
 ]
