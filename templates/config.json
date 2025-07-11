@@ -259,5 +259,31 @@
       { "key": "CONTRACT_ADDRESS", "required": true }
     ],
     "tags": ["VRF"]
+  },
+  {
+    "id": "blinko",
+    "name": "Blinko",
+    "description": "Blinko is an innovative **privacy-focused** open-source notebook designed for individuals who want to securely capture and organize their fleeting thoughts. Built with privacy at its core, Blinko can integrate with **Phala Network's secure computation framework** to ensure your ideas and notes remain confidential and protected. Whether you're brainstorming sensitive projects or personal musings, Blinko allows you to seamlessly jot down ideas the moment they strike, with the peace of mind that your data stays private and secure.",
+    "repo": "https://github.com/blinkospace/blinko",
+    "author": "Blinko Space",
+    "icon": "blinko.png",
+    "envs": [
+      { "key": "NEXTAUTH_SECRET", "required": true },
+      { "key": "POSTGRES_PASSWORD", "required": true }
+    ],
+    "tags": ["Notebook"]
+  },
+  {
+    "id": "chatnio",
+    "name": "Chatnio",
+    "description": "Chatnio is a powerful AI service management platform supporting 70+ models across text, image, audio, and video. It offers flexible deployment options with comprehensive model management, multi-tenant support, and robust security controls. The platform enables efficient deployment and management of AI services at scale through an intuitive interface and powerful API.",
+    "repo": "https://github.com/coaidev/coai",
+    "author": "coaidev",
+    "icon": "chatnio.png",
+    "envs": [
+      { "key": "MYSQL_ROOT_PASSWORD", "required": true },
+      { "key": "MYSQL_PASSWORD", "required": true }
+    ],
+    "tags": ["Chat"]
   }
 ]
