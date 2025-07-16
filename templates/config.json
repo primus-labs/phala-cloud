@@ -296,7 +296,7 @@
     "envs": [
       { "key": "N8N_USER", "required": true },
       { "key": "N8N_PASSWORD", "required": true },
-      { "key": "N8N_ENCRYPTION_KEY", "required": true },
+      { "key": "N8N_ENCRYPTION_KEY", "required": false },
       { "key": "OPENAI_API_KEY", "required": false },
       { "key": "GOOGLE_OAUTH_CLIENT_ID", "required": false },
       { "key": "GOOGLE_OAUTH_CLIENT_SECRET", "required": false }
