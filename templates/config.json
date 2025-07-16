@@ -285,5 +285,22 @@
       { "key": "MYSQL_PASSWORD", "required": true }
     ],
     "tags": ["Chat"]
+  },
+  {
+    "id": "n8n-automation",
+    "name": "n8n Workflow Automation",
+    "description": "Deploy n8n workflow automation platform on Phala Cloud's secure TEE infrastructure. Connect 400+ services, automate business processes, and create complex workflows with a visual interface. Features secure OAuth integration, encrypted credential storage, and confidential workflow execution.",
+    "repo": "https://github.com/Marvin-Cypher/phala-n8n-template",
+    "author": "Marvin-Cypher",
+    "icon": "n8n.png",
+    "envs": [
+      { "key": "N8N_USER", "required": true },
+      { "key": "N8N_PASSWORD", "required": true },
+      { "key": "N8N_ENCRYPTION_KEY", "required": true },
+      { "key": "OPENAI_API_KEY", "required": false },
+      { "key": "GOOGLE_OAUTH_CLIENT_ID", "required": false },
+      { "key": "GOOGLE_OAUTH_CLIENT_SECRET", "required": false }
+    ],
+    "tags": ["Automation", "Workflow", "Integration"]
   }
 ]
