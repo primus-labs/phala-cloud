@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
+import { isHex } from "viem";
 
 /**
  * Commit CVM Provision (Create CVM from provisioned data)
@@ -115,12 +116,13 @@ export type CommitCvmProvision = z.infer<typeof CommitCvmProvisionSchema>;
 // Request schema
 export const CommitCvmProvisionRequestSchema = z
   .object({
-    encrypted_env: z.string(),
+    encrypted_env: z.string().optional().nullable(),
     app_id: z.string(),
     compose_hash: z.string().optional(),
     kms_id: z.string().optional(),
     contract_address: z.string().optional(),
     deployer_address: z.string().optional(),
+    env_keys: z.array(z.string()).optional().nullable(),
   })
   .passthrough();
 

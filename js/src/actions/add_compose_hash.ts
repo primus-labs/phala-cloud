@@ -282,7 +282,6 @@ const AddComposeHashRequestSchema = z
 
 export type AddComposeHashRequest = {
   chain?: Chain;
-  kmsContractAddress: Address;
   appId: Address;
   composeHash: string;
   privateKey?: Hex;
@@ -308,7 +307,6 @@ export type AddComposeHashRequest = {
 export const AddComposeHashSchema = z
   .object({
     composeHash: z.string(),
-    appAuthAddress: z.string(),
     appId: z.string(),
     transactionHash: z.string(),
     blockNumber: z.bigint().optional(),
@@ -338,6 +336,7 @@ function parseComposeHashResult(
   appAuthAddress: Address,
   appId: Address,
 ): AddComposeHash {
+  console.log(receipt.logs);
   try {
     // Parse ComposeHashAdded event
     const logs = parseEventLogs({
@@ -388,7 +387,6 @@ export async function addComposeHash<T extends z.ZodSchema | false | undefined =
 
   const {
     chain,
-    kmsContractAddress,
     appId,
     composeHash,
     privateKey,
@@ -409,6 +407,8 @@ export async function addComposeHash<T extends z.ZodSchema | false | undefined =
   let walletClient: WalletClient;
   let address: Address;
   let chainId: number;
+
+  const appAuthAddress = (appId.startsWith("0x") ? appId : `0x${appId}`) as Address;
 
   if (privateKey) {
     // Mode 1: Private key authentication
@@ -498,26 +498,8 @@ export async function addComposeHash<T extends z.ZodSchema | false | undefined =
 
   // Define the blockchain operation
   const addComposeHashOperation = async (clients: NetworkClients): Promise<Hash> => {
-    // Step 1: Look up App Auth contract address from KMS
-    const appInfo = await clients.publicClient.readContract({
-      address: kmsContractAddress as Address,
-      abi: kmsAuthAbi,
-      functionName: "apps",
-      args: [appId as Address],
-    });
-
-    if (!appInfo || !appInfo[0]) {
-      throw new Error(`App ${appId} is not registered in KMS contract ${kmsContractAddress}`);
-    }
-
-    const appAuthAddress = appInfo[1];
-    if (!appAuthAddress) {
-      throw new Error(`No controller address found for app ${appId}`);
-    }
-
-    // Step 2: Call addComposeHash on the App Auth contract
     const hash = await clients.walletClient.writeContract({
-      address: appAuthAddress as Address,
+      address: appAuthAddress,
       abi: appAuthAbi,
       functionName: "addComposeHash",
       args: [asHex(composeHash)],
@@ -550,16 +532,6 @@ export async function addComposeHash<T extends z.ZodSchema | false | undefined =
         onConfirmed: onTransactionConfirmed,
         signal: signal,
       } as TransactionOptions & { signal?: AbortSignal });
-
-  // Get App Auth address for the result (we need to look it up again)
-  const appInfo = await publicClient.readContract({
-    address: kmsContractAddress as Address,
-    abi: kmsAuthAbi,
-    functionName: "apps",
-    args: [appId as Address],
-  });
-
-  const appAuthAddress = appInfo[1] as Address;
 
   // Parse result from receipt
   const result = parseComposeHashResult(

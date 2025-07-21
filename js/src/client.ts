@@ -1,4 +1,4 @@
-import { ofetch, type FetchOptions, type FetchRequest, type FetchError } from "ofetch";
+import { ofetch, type FetchOptions, type FetchRequest, FetchError } from "ofetch";
 import { type SafeResult, RequestError, type ClientConfig } from "./types/client";
 export type { SafeResult } from "./types/client";
 
@@ -17,7 +17,7 @@ export class Client {
       baseURL:
         config.baseURL ||
         process.env.PHALA_CLOUD_API_PREFIX ||
-        "https://cloud-api.phala.network/v1",
+        "https://cloud-api.phala.network/api/v1",
     };
 
     this.config = resolvedConfig;

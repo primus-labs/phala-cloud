@@ -242,7 +242,6 @@ const kmsAuthAbi = [
   {
     inputs: [
       { name: "appId", type: "address", indexed: true },
-      { name: "proxyAddress", type: "address", indexed: true },
       { name: "deployer", type: "address", indexed: true },
     ],
     name: "AppDeployedViaFactory",
@@ -405,18 +404,15 @@ function parseDeploymentResult(
       throw new Error("Event has no data");
     }
 
-    const { appId, proxyAddress, deployer: eventDeployer } = deploymentEvent.args;
+    const { appId, deployer: eventDeployer } = deploymentEvent.args;
 
     if (!appId) {
       throw new Error("Event missing appId");
     }
-    if (!proxyAddress) {
-      throw new Error("Event missing proxyAddress");
-    }
 
     return {
       appId: appId as string,
-      appAuthAddress: proxyAddress as string,
+      appAuthAddress: appId as Address,
       deployer: deployer,
       transactionHash: receipt.transactionHash,
       blockNumber: receipt.blockNumber,

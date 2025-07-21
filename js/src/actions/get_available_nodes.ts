@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
+import { KmsInfoSchema } from "../types/kms_info";
 
 /**
  * Get available teepods and their capacity information
@@ -62,56 +63,52 @@ import { type Client, type SafeResult } from "../client";
  * ```
  */
 
-export const AvailableOSImageSchema = z.object({
-  name: z.string(),
-  is_dev: z.boolean(),
-  version: z.tuple([z.number(), z.number(), z.number()]),
-  os_image_hash: z.string().nullable().optional(),
-});
+export const AvailableOSImageSchema = z
+  .object({
+    name: z.string(),
+    is_dev: z.boolean(),
+    version: z.tuple([z.number(), z.number(), z.number()]),
+    os_image_hash: z.string().nullable().optional(),
+  })
+  .passthrough();
 
-export const TeepodCapacitySchema = z.object({
-  teepod_id: z.number(),
-  name: z.string(),
-  listed: z.boolean(),
-  resource_score: z.number(),
-  remaining_vcpu: z.number(),
-  remaining_memory: z.number(),
-  remaining_cvm_slots: z.number(),
-  images: z.array(AvailableOSImageSchema),
-  dedicated_for_team_id: z.number().nullable().optional(),
-  support_onchain_kms: z.boolean().optional(),
-  fmspc: z.string().nullable().optional(),
-  device_id: z.string().nullable().optional(),
-});
+export const TeepodCapacitySchema = z
+  .object({
+    teepod_id: z.number(),
+    name: z.string(),
+    listed: z.boolean(),
+    resource_score: z.number(),
+    remaining_vcpu: z.number(),
+    remaining_memory: z.number(),
+    remaining_cvm_slots: z.number(),
+    images: z.array(AvailableOSImageSchema),
+    dedicated_for_team_id: z.number().nullable().optional(),
+    support_onchain_kms: z.boolean().optional(),
+    fmspc: z.string().nullable().optional(),
+    device_id: z.string().nullable().optional(),
+  })
+  .passthrough();
 
-export const KMSInfoSchema = z.object({
-  id: z.string(), // HashedId is string in API response
-  url: z.string(),
-  version: z.string(),
-  chain_id: z.number(),
-  kms_contract_address: z.string(),
-  gateway_app_id: z.string().nullable().optional(),
-});
-
-export const ResourceThresholdSchema = z.object({
-  max_instances: z.number().nullable().optional(),
-  max_vcpu: z.number().nullable().optional(),
-  max_memory: z.number().nullable().optional(),
-  max_disk: z.number().nullable().optional(),
-});
+export const ResourceThresholdSchema = z
+  .object({
+    max_instances: z.number().nullable().optional(),
+    max_vcpu: z.number().nullable().optional(),
+    max_memory: z.number().nullable().optional(),
+    max_disk: z.number().nullable().optional(),
+  })
+  .passthrough();
 
 export const AvailableNodesSchema = z
   .object({
     tier: z.string(), // TeamTier is string enum
     capacity: ResourceThresholdSchema,
     nodes: z.array(TeepodCapacitySchema),
-    kms_list: z.array(KMSInfoSchema),
+    kms_list: z.array(KmsInfoSchema),
   })
   .passthrough();
 
 export type AvailableOSImage = z.infer<typeof AvailableOSImageSchema>;
 export type TeepodCapacity = z.infer<typeof TeepodCapacitySchema>;
-export type KMSInfo = z.infer<typeof KMSInfoSchema>;
 export type ResourceThreshold = z.infer<typeof ResourceThresholdSchema>;
 export type AvailableNodes = z.infer<typeof AvailableNodesSchema>;
 
