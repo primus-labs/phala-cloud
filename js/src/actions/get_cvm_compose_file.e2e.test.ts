@@ -100,8 +100,8 @@ describe("getCvmComposeFile E2E", () => {
         await getCvmComposeFile(client, { cvm_id: "invalid-cvm-id" });
         // If no error is thrown, that's unexpected for an invalid ID
       } catch (error: any) {
-        expect(error.status).toBeGreaterThanOrEqual(400);
-        expect(error.status).toBeLessThanOrEqual(500);
+        expect(error.status).toBe(400);
+        expect(error.message).toContain("invalid identifier");
         expect(error.detail || error.message).toBeDefined();
         console.log(`Expected error for invalid identifier - Status: ${error.status}, Detail: ${error.detail}`);
       }

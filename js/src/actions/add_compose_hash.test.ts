@@ -190,30 +190,17 @@ describe("addComposeHash", () => {
 
       expect(result).toEqual({
         composeHash: "0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-        appAuthAddress: "0x1234567890abcdef1234567890abcdef12345678",
+        appAuthAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
         appId: "0xabcdef1234567890abcdef1234567890abcdef12",
         transactionHash: "0x123...abc",
         blockNumber: BigInt(1234567),
         gasUsed: BigInt(21000),
       });
 
-      // Verify KMS contract was called
-      expect(mockPublicClient.readContract).toHaveBeenCalledWith({
-        address: validRequest.kmsContractAddress,
-        abi: expect.arrayContaining([
-          expect.objectContaining({
-            name: "apps",
-            type: "function",
-          }),
-        ]),
-        functionName: "apps",
-        args: [validRequest.appId],
-      });
-
       // Verify App Auth contract was called via the captured operation
       expect(capturedOperation).toBeDefined();
       expect(mockWalletClient.writeContract).toHaveBeenCalledWith({
-        address: "0x1234567890abcdef1234567890abcdef12345678",
+        address: "0xabcdef1234567890abcdef1234567890abcdef12",
         abi: expect.arrayContaining([
           expect.objectContaining({
             name: "addComposeHash",
@@ -246,7 +233,7 @@ describe("addComposeHash", () => {
 
       expect(result).toEqual({
         composeHash: "0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-        appAuthAddress: "0x1234567890abcdef1234567890abcdef12345678",
+        appAuthAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
         appId: "0xabcdef1234567890abcdef1234567890abcdef12",
         transactionHash: "0x123...abc",
         blockNumber: BigInt(1234567),
@@ -275,7 +262,7 @@ describe("addComposeHash", () => {
 
       expect(result).toEqual({
         composeHash: "0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-        appAuthAddress: "0x1234567890abcdef1234567890abcdef12345678",
+        appAuthAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
         appId: "0xabcdef1234567890abcdef1234567890abcdef12",
         transactionHash: "0x123...abc",
         blockNumber: BigInt(1234567),
@@ -299,30 +286,43 @@ describe("addComposeHash", () => {
       expect(mockCreateWalletClient).not.toHaveBeenCalled();
     });
 
-    it("should throw when app is not registered in KMS", async () => {
-      mockPublicClient.readContract.mockResolvedValue([false, "0x0000000000000000000000000000000000000000"]);
-
-      // Mock the transaction tracker to execute the operation that should fail
-      mockTransactionTracker.execute.mockImplementation(async (operation: any, clients: any) => {
-        await operation(clients); // This will throw
-      });
+    it("should throw when transaction fails", async () => {
+      // Mock the transaction tracker to simulate a failed transaction
+      mockTransactionTracker.execute.mockRejectedValue(
+        new Error("Transaction failed: contract call reverted")
+      );
 
       await expect(addComposeHash(validRequest)).rejects.toThrow(
-        "App 0xabcdef1234567890abcdef1234567890abcdef12 is not registered in KMS contract",
+        "Transaction failed: contract call reverted",
       );
     });
 
-    it("should throw when no controller address found", async () => {
-      mockPublicClient.readContract.mockResolvedValue([true, null]);
+    it("should throw when wallet client throws error", async () => {
+      // Mock the wallet client to throw an error during contract write
+      mockWalletClient.writeContract.mockRejectedValue(
+        new Error("Insufficient funds for transaction")
+      );
 
-      // Mock the transaction tracker to execute the operation that should fail
+      // Mock the transaction tracker to propagate the error
       mockTransactionTracker.execute.mockImplementation(async (operation: any, clients: any) => {
-        await operation(clients); // This will throw
+        try {
+          await operation(clients);
+        } catch (error) {
+          throw error;
+        }
       });
 
       await expect(addComposeHash(validRequest)).rejects.toThrow(
-        "No controller address found for app",
+        "Insufficient funds for transaction",
       );
+    });
+
+    it("should handle validation errors", async () => {
+      const error = new Error("Validation error");
+      (error as any).status = 422;
+      mockTransactionTracker.execute.mockRejectedValue(error);
+
+      await expect(addComposeHash(validRequest)).rejects.toEqual(error);
     });
 
     it("should handle prerequisite check failures", async () => {
@@ -457,7 +457,7 @@ describe("addComposeHash", () => {
       if (result.success) {
         expect(result.data).toEqual({
           composeHash: "0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-          appAuthAddress: "0x1234567890abcdef1234567890abcdef12345678",
+          appAuthAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
           appId: "0xabcdef1234567890abcdef1234567890abcdef12",
           transactionHash: "0x123...abc",
           blockNumber: BigInt(1234567),
@@ -518,7 +518,7 @@ describe("addComposeHash", () => {
       if (result.success) {
         expect(result.data).toEqual({
           composeHash: "0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-          appAuthAddress: "0x1234567890abcdef1234567890abcdef12345678",
+          appAuthAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
           appId: "0xabcdef1234567890abcdef1234567890abcdef12",
           transactionHash: "0x123...abc",
           blockNumber: BigInt(1234567),

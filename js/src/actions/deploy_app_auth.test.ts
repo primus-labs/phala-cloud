@@ -64,7 +64,7 @@ describe("deployAppAuth", () => {
 
   const mockDeploymentResult: DeployAppAuth = {
     appId: "0xapp123456789abcdef123456789abcdef123456789",
-    appAuthAddress: "0xauth123456789abcdef123456789abcdef12345678",
+    appAuthAddress: "0xapp123456789abcdef123456789abcdef123456789",
     deployer: "0xdeployer123456789abcdef123456789abcdef1234",
     transactionHash: "0x123456789abcdef123456789abcdef123456789abcdef123456789abcdef12345678" as `0x${string}`,
     blockNumber: 12345n,

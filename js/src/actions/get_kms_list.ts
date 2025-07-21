@@ -29,7 +29,7 @@ export async function getKmsList<T extends z.ZodSchema | false | undefined = und
   parameters?: GetKmsListParameters<T>,
 ): Promise<GetKmsListReturnType<T>> {
   const httpResult = await client.safeGet("/kms");
-  if (httpResult.error) {
+  if (!httpResult.success) {
     throw httpResult.error;
   }
   if (parameters?.schema === false) {
@@ -44,7 +44,7 @@ export async function safeGetKmsList<T extends z.ZodSchema | false | undefined =
   parameters?: GetKmsListParameters<T>,
 ): Promise<SafeResult<GetKmsListReturnType<T>>> {
   const httpResult = await client.safeGet("/kms");
-  if (httpResult.error) {
+  if (!httpResult.success) {
     return httpResult;
   }
   if (parameters?.schema === false) {

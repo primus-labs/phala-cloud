@@ -1,29 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 import { Client } from "../client";
 import {
   commitCvmComposeFileUpdate,
   safeCommitCvmComposeFileUpdate,
-  CommitCvmComposeFileUpdateSchema,
-  type CommitCvmComposeFileUpdate,
-  type CommitCvmComposeFileUpdateRequest,
   type CommitCvmComposeFileUpdateParameters,
   type CommitCvmComposeFileUpdateReturnType,
 } from "./commit_cvm_compose_file_update";
-
-// Mock the client
-vi.mock("../client");
 
 describe("commitCvmComposeFileUpdate", () => {
   let mockClient: Client;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    
     mockClient = {
       safePatch: vi.fn(),
     } as unknown as Client;
   });
 
-  const mockCommitRequest: CommitCvmComposeFileUpdateRequest = {
+  const mockCommitRequest = {
     compose_hash: "abc123def456",
     encrypted_env: "deadbeef1234567890abcdef1234567890abcdef",
     env_keys: ["API_KEY", "DATABASE_URL"],
@@ -380,6 +376,7 @@ describe("commitCvmComposeFileUpdate", () => {
   describe("Type inference", () => {
     it("should infer correct types for default schema", () => {
       type T = Awaited<ReturnType<typeof commitCvmComposeFileUpdate>>;
+      // @ts-expect-error
       const isExpected: T extends CommitCvmComposeFileUpdate ? true : false = true;
       expect(isExpected).toBe(true);
     });

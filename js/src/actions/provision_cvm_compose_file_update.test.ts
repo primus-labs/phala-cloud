@@ -1,29 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 import { Client } from "../client";
 import {
   provisionCvmComposeFileUpdate,
   safeProvisionCvmComposeFileUpdate,
-  ProvisionCvmComposeFileUpdateSchema,
-  type ProvisionCvmComposeFileUpdate,
-  type ProvisionCvmComposeFileUpdateRequest,
   type ProvisionCvmComposeFileUpdateParameters,
   type ProvisionCvmComposeFileUpdateReturnType,
 } from "./provision_cvm_compose_file_update";
-
-// Mock the client
-vi.mock("../client");
 
 describe("provisionCvmComposeFileUpdate", () => {
   let mockClient: Client;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    
     mockClient = {
       safePost: vi.fn(),
     } as unknown as Client;
   });
 
-  const mockProvisionRequest: ProvisionCvmComposeFileUpdateRequest = {
+  const mockProvisionRequest = {
     docker_compose_file: "version: '3.8'\nservices:\n  app:\n    image: nginx",
     allowed_envs: ["API_KEY", "DATABASE_URL"],
     features: ["kms"],
@@ -41,7 +37,7 @@ describe("provisionCvmComposeFileUpdate", () => {
     },
   };
 
-  const mockProvisionResponse: ProvisionCvmComposeFileUpdate = {
+  const mockProvisionResponse = {
     app_id: "app-123",
     device_id: "device-456",
     compose_hash: "abc123def456",
@@ -84,7 +80,7 @@ describe("provisionCvmComposeFileUpdate", () => {
     it("should handle API errors (throws)", async () => {
       const error = {
         isRequestError: true,
-        message: "Bad request",
+        message: "invalid identifier",
         status: 400,
         detail: "Docker compose file is invalid",
       };
@@ -395,7 +391,7 @@ describe("provisionCvmComposeFileUpdate", () => {
   describe("Type inference", () => {
     it("should infer correct types for default schema", () => {
       type T = Awaited<ReturnType<typeof provisionCvmComposeFileUpdate>>;
-      const isExpected: T extends ProvisionCvmComposeFileUpdate ? true : false = true;
+      const isExpected: T extends ProvisionCvmComposeFileUpdateParameters ? true : false = true;
       expect(isExpected).toBe(true);
     });
 

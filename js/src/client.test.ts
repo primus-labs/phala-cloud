@@ -228,7 +228,7 @@ describe("Client", () => {
 
 			expect(ofetch.create).toHaveBeenCalledWith(
 				expect.objectContaining({
-					baseURL: "https://cloud-api.phala.network/v1",
+					baseURL: "https://cloud-api.phala.network/api/v1",
 					timeout: 30000,
 					headers: expect.objectContaining({
 						"X-API-Key": "test-key",

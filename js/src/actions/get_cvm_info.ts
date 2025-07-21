@@ -24,7 +24,7 @@ export async function getCvmInfo<T extends z.ZodSchema | false | undefined = und
   parameters?: GetCvmInfoParameters<T>,
 ): Promise<GetCvmInfoReturnType<T>> {
   const httpResult = await client.safeGet(`/cvms/${cvmId}`);
-  if (httpResult.error) {
+  if (!httpResult.success) {
     throw httpResult.error;
   }
   if (parameters?.schema === false) {
@@ -40,7 +40,7 @@ export async function safeGetCvmInfo<T extends z.ZodSchema | false | undefined =
   parameters?: GetCvmInfoParameters<T>,
 ): Promise<SafeResult<GetCvmInfoReturnType<T>>> {
   const httpResult = await client.safeGet(`/cvms/${cvmId}`);
-  if (httpResult.error) {
+  if (!httpResult.success) {
     return httpResult;
   }
   if (parameters?.schema === false) {

@@ -45,7 +45,7 @@ export async function getCvmList<T extends z.ZodSchema | false | undefined = und
     params.node_id = parameters.node_id;
   }
   const httpResult = await client.safeGet("/cvms/paginated", { params });
-  if (httpResult.error) {
+  if (!httpResult.success) {
     throw httpResult.error;
   }
   if (parameters?.schema === false) {
@@ -70,7 +70,7 @@ export async function safeGetCvmList<T extends z.ZodSchema | false | undefined =
     params.node_id = parameters.node_id;
   }
   const httpResult = await client.safeGet("/cvms/paginated", { params });
-  if (httpResult.error) {
+  if (!httpResult.success) {
     return httpResult;
   }
   if (parameters?.schema === false) {

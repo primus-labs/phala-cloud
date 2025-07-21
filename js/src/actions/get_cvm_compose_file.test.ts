@@ -1,28 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 import { Client } from "../client";
 import {
   getCvmComposeFile,
   safeGetCvmComposeFile,
-  CvmComposeFileSchema,
-  type CvmComposeFile,
   type GetCvmComposeFileParameters,
   type GetCvmComposeFileReturnType,
 } from "./get_cvm_compose_file";
-
-// Mock the client
-vi.mock("../client");
 
 describe("getCvmComposeFile", () => {
   let mockClient: Client;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    
     mockClient = {
       safeGet: vi.fn(),
     } as unknown as Client;
   });
 
-  const mockComposeFileResponse: CvmComposeFile = {
+  const mockComposeFileResponse = {
     docker_compose_file: "version: '3.8'\nservices:\n  app:\n    image: nginx",
     allowed_envs: ["API_KEY", "DATABASE_URL"],
     features: ["kms"],
@@ -296,33 +293,41 @@ describe("getCvmComposeFile", () => {
   describe("Type inference", () => {
     it("should infer correct types for default schema", () => {
       type T = Awaited<ReturnType<typeof getCvmComposeFile>>;
-      const isExpected: T extends CvmComposeFile ? true : false = true;
-      expect(isExpected).toBe(true);
+      type _Assert = T extends { docker_compose_file: string } ? true : false;
+      const assert: _Assert = true;
+      expect(assert).toBe(true);
     });
 
     it("should infer correct types for custom schema", () => {
       const customSchema = z.object({ test: z.string() });
       type T = GetCvmComposeFileReturnType<typeof customSchema>;
-      const isExpected: T extends { test: string } ? true : false = true;
-      expect(isExpected).toBe(true);
+      type _Assert = T extends { test: string } ? true : false;
+      const assert: _Assert = true;
+      expect(assert).toBe(true);
     });
 
     it("should infer correct types for schema: false", () => {
       type T = GetCvmComposeFileReturnType<false>;
-      const isExpected: T extends unknown ? true : false = true;
-      expect(isExpected).toBe(true);
+      type _Assert = T extends unknown ? true : false;
+      const assert: _Assert = true;
+      expect(assert).toBe(true);
     });
   });
 
   describe("Safe version type inference", () => {
     it("should infer correct SafeResult types for all parameterizations", () => {
       type DefaultResult = Awaited<ReturnType<typeof safeGetCvmComposeFile>>;
-      type CustomResult = Awaited<ReturnType<typeof safeGetCvmComposeFile<z.ZodObject<{ test: z.ZodString }>>>>;
+      type CustomSchema = z.ZodObject<{ test: z.ZodString }>;
+      type CustomResult = Awaited<ReturnType<typeof safeGetCvmComposeFile<CustomSchema>>>;
       type RawResult = Awaited<ReturnType<typeof safeGetCvmComposeFile<false>>>;
 
-      const defaultCheck: DefaultResult extends { success: boolean } ? true : false = true;
-      const customCheck: CustomResult extends { success: boolean } ? true : false = true;
-      const rawCheck: RawResult extends { success: boolean } ? true : false = true;
+      type DefaultAssert = DefaultResult extends { success: true; data: { docker_compose_file: string } } | { success: false; error: any } ? true : false;
+      type CustomAssert = CustomResult extends { success: true; data: { test: string } } | { success: false; error: any } ? true : false;
+      type RawAssert = RawResult extends { success: true; data: unknown } | { success: false; error: any } ? true : false;
+
+      const defaultCheck: DefaultAssert = true;
+      const customCheck: CustomAssert = true;
+      const rawCheck: RawAssert = true;
 
       expect(defaultCheck).toBe(true);
       expect(customCheck).toBe(true);
