@@ -10,6 +10,8 @@ export const GetKmsListSchema = z.object({
   pages: z.number(),
 });
 
+export type GetKmsListResponse = z.infer<typeof KmsInfoSchema>;
+
 export type GetKmsListParameters<T = undefined> = T extends z.ZodSchema
   ? { schema: T }
   : T extends false
@@ -20,7 +22,7 @@ export type GetKmsListReturnType<T = undefined> = T extends z.ZodSchema
   ? z.infer<T>
   : T extends false
     ? unknown
-    : KmsInfo[];
+    : GetKmsListResponse;
 
 export async function getKmsList<T extends z.ZodSchema | false | undefined = undefined>(
   client: Client,
