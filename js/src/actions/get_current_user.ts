@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
+import { ActionParameters, ActionReturnType } from "../types/common";
+import { validateActionParameters, safeValidateActionParameters } from "../utils";
 
 /**
  * Get current user information and validate API token
@@ -23,12 +25,10 @@ import { type Client, type SafeResult } from "../client";
  *
  * ## Parameters
  *
- * ### schema (optional)
+ * ### parameters (optional)
+ * - **Type:** `GetCurrentUserParameters`
  *
- * - **Type:** `ZodSchema | false`
- * - **Default:** `CurrentUserSchema`
- *
- * Schema to validate the response. Use `false` to return raw data without validation.
+ * Optional behavior parameters for schema validation.
  *
  * ```typescript
  * // Use default schema
@@ -76,22 +76,16 @@ export const CurrentUserSchema = z
 
 export type CurrentUser = z.infer<typeof CurrentUserSchema>;
 
-export type GetCurrentUserParameters<T = undefined> = T extends z.ZodSchema
-  ? { schema: T }
-  : T extends false
-    ? { schema: false }
-    : { schema?: z.ZodSchema | false };
+export type GetCurrentUserParameters<T = undefined> = ActionParameters<T>;
 
-export type GetCurrentUserReturnType<T = undefined> = T extends z.ZodSchema
-  ? z.infer<T>
-  : T extends false
-    ? unknown
-    : CurrentUser;
+export type GetCurrentUserReturnType<T = undefined> = ActionReturnType<CurrentUser, T>;
 
 export async function getCurrentUser<T extends z.ZodSchema | false | undefined = undefined>(
   client: Client,
   parameters?: GetCurrentUserParameters<T>,
 ): Promise<GetCurrentUserReturnType<T>> {
+  validateActionParameters(parameters);
+
   const response = await client.get("/auth/me");
 
   if (parameters?.schema === false) {
@@ -106,8 +100,12 @@ export async function safeGetCurrentUser<T extends z.ZodSchema | false | undefin
   client: Client,
   parameters?: GetCurrentUserParameters<T>,
 ): Promise<SafeResult<GetCurrentUserReturnType<T>>> {
-  const httpResult = await client.safeGet("/auth/me");
+  const parameterValidationError = safeValidateActionParameters(parameters);
+  if (parameterValidationError) {
+    return parameterValidationError as SafeResult<GetCurrentUserReturnType<T>>;
+  }
 
+  const httpResult = await client.safeGet("/auth/me");
   if (!httpResult.success) {
     return httpResult as SafeResult<GetCurrentUserReturnType<T>>;
   }

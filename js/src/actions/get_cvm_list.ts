@@ -1,84 +1,106 @@
 import { z } from "zod";
-import type { SafeResult, Client } from "../client";
-import { CvmInfoSchema, type CvmInfo } from "../types/cvm_info";
+import { type Client, type SafeResult } from "../client";
+import { CvmInfoSchema } from "../types/cvm_info";
+import { ActionParameters, ActionReturnType } from "../types/common";
+import { validateActionParameters, safeValidateActionParameters } from "../utils";
 
-export const GetCvmListSchema = z.object({
-  items: z.array(CvmInfoSchema),
-  total: z.number(),
-  page: z.number(),
-  page_size: z.number(),
-  pages: z.number(),
-});
+export const GetCvmListRequestSchema = z
+  .object({
+    page: z.number().int().min(1).optional(),
+    page_size: z.number().int().min(1).optional(),
+    node_id: z.number().int().min(1).optional(),
+  })
+  .strict();
 
+export const GetCvmListSchema = z
+  .object({
+    items: z.array(CvmInfoSchema),
+    total: z.number(),
+    page: z.number(),
+    page_size: z.number(),
+    pages: z.number(),
+  })
+  .strict();
+
+export type GetCvmListRequest = z.infer<typeof GetCvmListRequestSchema>;
 export type GetCvmListResponse = z.infer<typeof GetCvmListSchema>;
 
-interface QueryParams {
-  page?: number;
-  page_size?: number;
-  node_id?: number;
-}
+export type GetCvmListParameters<T = undefined> = ActionParameters<T>;
 
-export type GetCvmListParameters<T = undefined> = T extends z.ZodSchema
-  ? { schema: T } & QueryParams
-  : T extends false
-    ? { schema: false } & QueryParams
-    : { schema?: z.ZodSchema | false } & QueryParams;
+export type GetCvmListReturnType<T = undefined> = ActionReturnType<GetCvmListResponse, T>;
 
-export type GetCvmListReturnType<T = undefined> = T extends z.ZodSchema
-  ? z.infer<T>
-  : T extends false
-    ? unknown
-    : GetCvmListResponse;
-
+/**
+ * Get a paginated list of CVMs
+ *
+ * @param client - The API client
+ * @param request - Optional request parameters for pagination and filtering
+ * @param request.page - Page number (1-based)
+ * @param request.page_size - Number of items per page
+ * @param request.node_id - Filter by node ID
+ * @param parameters - Optional behavior parameters
+ * @returns Paginated list of CVMs
+ *
+ * @example
+ * ```typescript
+ * // Get first page with default size
+ * const list = await getCvmList(client, { page: 1 })
+ *
+ * // Get with custom page size
+ * const list = await getCvmList(client, { page: 1, page_size: 20 })
+ *
+ * // Get with custom schema
+ * const list = await getCvmList(client, { page: 1 }, { schema: customSchema })
+ * ```
+ */
 export async function getCvmList<T extends z.ZodSchema | false | undefined = undefined>(
   client: Client,
+  request?: GetCvmListRequest,
   parameters?: GetCvmListParameters<T>,
 ): Promise<GetCvmListReturnType<T>> {
-  const params = {} as QueryParams;
-  if (parameters?.page) {
-    params.page = parameters.page;
-  }
-  if (parameters?.page_size) {
-    params.page_size = parameters.page_size;
-  }
-  if (parameters?.node_id) {
-    params.node_id = parameters.node_id;
-  }
-  const httpResult = await client.safeGet("/cvms/paginated", { params });
-  if (!httpResult.success) {
-    throw httpResult.error;
-  }
+  const validatedRequest = GetCvmListRequestSchema.parse(request ?? {});
+
+  validateActionParameters(parameters);
+
+  const response = await client.get("/cvms/paginated", { params: validatedRequest });
+
   if (parameters?.schema === false) {
-    return httpResult.data as GetCvmListReturnType<T>;
+    return response as GetCvmListReturnType<T>;
   }
+
   const schema = (parameters?.schema || GetCvmListSchema) as z.ZodSchema;
-  return schema.parse(httpResult.data) as GetCvmListReturnType<T>;
+  return schema.parse(response) as GetCvmListReturnType<T>;
 }
 
+/**
+ * Safe version of getCvmList that returns a Result type instead of throwing
+ */
 export async function safeGetCvmList<T extends z.ZodSchema | false | undefined = undefined>(
   client: Client,
+  request?: GetCvmListRequest,
   parameters?: GetCvmListParameters<T>,
 ): Promise<SafeResult<GetCvmListReturnType<T>>> {
-  const params = {} as QueryParams;
-  if (parameters?.page) {
-    params.page = parameters.page;
+  const requestValidation = GetCvmListRequestSchema.safeParse(request ?? {});
+  if (!requestValidation.success) {
+    return requestValidation as SafeResult<GetCvmListReturnType<T>>;
   }
-  if (parameters?.page_size) {
-    params.page_size = parameters.page_size;
+
+  const parameterValidationError = safeValidateActionParameters(parameters);
+  if (parameterValidationError) {
+    return parameterValidationError as SafeResult<GetCvmListReturnType<T>>;
   }
-  if (parameters?.node_id) {
-    params.node_id = parameters.node_id;
-  }
-  const httpResult = await client.safeGet("/cvms/paginated", { params });
+
+  const httpResult = await client.safeGet("/cvms/paginated", { params: requestValidation.data });
   if (!httpResult.success) {
     return httpResult;
   }
+
   if (parameters?.schema === false) {
     return {
       success: true,
       data: httpResult.data,
     } as SafeResult<GetCvmListReturnType<T>>;
   }
+
   const schema = (parameters?.schema || GetCvmListSchema) as z.ZodSchema;
   const validationResult = schema.safeParse(httpResult.data);
   return validationResult as SafeResult<GetCvmListReturnType<T>>;

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
 import { isHex } from "viem";
+import { ActionParameters, ActionReturnType } from "../types/common";
+import { validateActionParameters, safeValidateActionParameters } from "../utils";
 
 /**
  * Commit CVM Provision (Create CVM from provisioned data)
@@ -128,38 +130,25 @@ export const CommitCvmProvisionRequestSchema = z
 
 export type CommitCvmProvisionRequest = z.infer<typeof CommitCvmProvisionRequestSchema>;
 
-// Conditional types for intelligent type inference
-export type CommitCvmProvisionParameters<T = undefined> = T extends z.ZodSchema
-  ? { schema: T }
-  : T extends false
-    ? { schema: false }
-    : { schema?: z.ZodSchema | false };
+export type CommitCvmProvisionParameters<T = undefined> = ActionParameters<T>;
 
-export type CommitCvmProvisionReturnType<T = undefined> = T extends z.ZodSchema
-  ? z.infer<T>
-  : T extends false
-    ? unknown
-    : CommitCvmProvision;
+export type CommitCvmProvisionReturnType<T = undefined> = ActionReturnType<CommitCvmProvision, T>;
 
-// Standard version (throws on error)
 export async function commitCvmProvision<T extends z.ZodSchema | false | undefined = undefined>(
   client: Client,
   payload: CommitCvmProvisionRequest,
   parameters?: CommitCvmProvisionParameters<T>,
 ): Promise<CommitCvmProvisionReturnType<T>> {
-  // Use safePost for proper error handling to ensure RequestError type
-  const httpResult = await client.safePost("/cvms", payload);
+  validateActionParameters(parameters);
 
-  if (!httpResult.success) {
-    throw httpResult.error;
-  }
+  const response = await client.post("/cvms", payload);
 
   if (parameters?.schema === false) {
-    return httpResult.data as CommitCvmProvisionReturnType<T>;
+    return response as CommitCvmProvisionReturnType<T>;
   }
 
   const schema = (parameters?.schema || CommitCvmProvisionSchema) as z.ZodSchema;
-  return schema.parse(httpResult.data) as CommitCvmProvisionReturnType<T>;
+  return schema.parse(response) as CommitCvmProvisionReturnType<T>;
 }
 
 // Safe version (returns SafeResult)
@@ -168,8 +157,12 @@ export async function safeCommitCvmProvision<T extends z.ZodSchema | false | und
   payload: CommitCvmProvisionRequest,
   parameters?: CommitCvmProvisionParameters<T>,
 ): Promise<SafeResult<CommitCvmProvisionReturnType<T>>> {
-  const httpResult = await client.safePost("/cvms", payload);
+  const parameterValidationError = safeValidateActionParameters(parameters);
+  if (parameterValidationError) {
+    return parameterValidationError as SafeResult<CommitCvmProvisionReturnType<T>>;
+  }
 
+  const httpResult = await client.safePost("/cvms", payload);
   if (!httpResult.success) {
     return httpResult as SafeResult<CommitCvmProvisionReturnType<T>>;
   }

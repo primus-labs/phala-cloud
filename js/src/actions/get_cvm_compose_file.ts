@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
+import { ActionParameters, ActionReturnType } from "../types/common";
 
 /**
  * Get CVM compose file configuration
@@ -11,7 +12,7 @@ import { type Client, type SafeResult } from "../client";
  * import { createClient, getCvmComposeFile } from '@phala/cloud'
  *
  * const client = createClient({ apiKey: 'your-api-key' })
- * const composeFile = await getCvmComposeFile(client, { cvm_id: 'cvm-123' })
+ * const composeFile = await getCvmComposeFile(client, { id: 'cvm-123' })
  * // Output: { compose_content: '...', version: '...', last_modified: '...' }
  * ```
  *
@@ -23,29 +24,30 @@ import { type Client, type SafeResult } from "../client";
  *
  * ## Parameters
  *
- * ### cvm_id (required)
+ * ### request (required)
+ * - **Type:** `GetCvmComposeFileRequest`
  *
- * - **Type:** `string`
+ * Request parameters containing the CVM identifier. Can be one of:
+ * - id: The CVM ID
+ * - uuid: The CVM UUID
+ * - appId: The App ID (40 chars)
+ * - instanceId: The Instance ID (40 chars)
  *
- * The CVM ID to retrieve compose file for. Can be either an app_id or vm_uuid.
+ * ### parameters (optional)
+ * - **Type:** `GetCvmComposeFileParameters`
  *
- * ### schema (optional)
- *
- * - **Type:** `ZodSchema | false`
- * - **Default:** `GetCvmComposeFileResultSchema`
- *
- * Schema to validate the response. Use `false` to return raw data without validation.
+ * Optional behavior parameters for schema validation.
  *
  * ```typescript
  * // Use default schema
- * const result = await getCvmComposeFile(client, { cvm_id: 'cvm-123' })
+ * const result = await getCvmComposeFile(client, { id: 'cvm-123' })
  *
  * // Return raw data without validation
- * const raw = await getCvmComposeFile(client, { cvm_id: 'cvm-123', schema: false })
+ * const raw = await getCvmComposeFile(client, { id: 'cvm-123' }, { schema: false })
  *
  * // Use custom schema
  * const customSchema = z.object({ compose_content: z.string() })
- * const custom = await getCvmComposeFile(client, { cvm_id: 'cvm-123', schema: customSchema })
+ * const custom = await getCvmComposeFile(client, { id: 'cvm-123' }, { schema: customSchema })
  * ```
  *
  * ## Safe Version
@@ -55,7 +57,7 @@ import { type Client, type SafeResult } from "../client";
  * ```typescript
  * import { safeGetCvmComposeFile } from '@phala/cloud'
  *
- * const result = await safeGetCvmComposeFile(client, { cvm_id: 'cvm-123' })
+ * const result = await safeGetCvmComposeFile(client, { id: 'cvm-123' })
  * if (result.success) {
  *   console.log(result.data.compose_content)
  * } else {
@@ -80,13 +82,6 @@ export const GetCvmComposeFileResultSchema = z
     public_sysinfo: z.boolean().optional(),
     tproxy_enabled: z.boolean().optional(),
     pre_launch_script: z.string().optional(),
-    docker_config: z
-      .object({
-        url: z.string().optional(),
-        username: z.string().optional(),
-        password: z.string().optional(),
-      })
-      .optional(),
   })
   .passthrough();
 
@@ -95,73 +90,89 @@ export const CvmComposeFileSchema = GetCvmComposeFileResultSchema;
 export type CvmComposeFile = z.infer<typeof CvmComposeFileSchema>;
 export type GetCvmComposeFileResult = z.infer<typeof GetCvmComposeFileResultSchema>;
 
-export type GetCvmComposeFileParameters<T = undefined> = {
-  cvm_id: string;
-} & (T extends z.ZodSchema
-  ? { schema: T }
-  : T extends false
-    ? { schema: false }
-    : { schema?: z.ZodSchema | false });
+export const GetCvmComposeFileRequestSchema = z
+  .object({
+    id: z.string().optional(),
+    uuid: z
+      .string()
+      .regex(/^[0-9a-f]{8}[-]?[0-9a-f]{4}[-]?4[0-9a-f]{3}[-]?[89ab][0-9a-f]{3}[-]?[0-9a-f]{12}$/i)
+      .optional(),
+    app_id: z
+      .string()
+      .refine(
+        (val) => !val.startsWith("app_") && val.length === 40,
+        "app_id should be 40 characters without prefix",
+      )
+      .transform((val) => (val.startsWith("app_") ? val : `app_${val}`))
+      .optional(),
+    instance_id: z
+      .string()
+      .refine(
+        (val) => !val.startsWith("instance_") && val.length === 40,
+        "instance_id should be 40 characters without prefix",
+      )
+      .transform((val) => (val.startsWith("instance_") ? val : `instance_${val}`))
+      .optional(),
+  })
+  .refine(
+    (data) => !!(data.id || data.uuid || data.app_id || data.instance_id),
+    "One of id, uuid, app_id, or instance_id must be provided",
+  )
+  .transform((data) => ({
+    cvmId: data.id || data.uuid || data.app_id || data.instance_id,
+    _raw: data,
+  }));
 
-export type GetCvmComposeFileReturnType<T = undefined> = T extends z.ZodSchema
-  ? z.infer<T>
-  : T extends false
-    ? unknown
-    : GetCvmComposeFileResult;
+export type GetCvmComposeFileRequest = {
+  id?: string;
+  uuid?: string;
+  app_id?: string;
+  instance_id?: string;
+};
+
+export type GetCvmComposeFileParameters<T = undefined> = ActionParameters<T>;
+
+export type GetCvmComposeFileReturnType<T = undefined> = ActionReturnType<
+  GetCvmComposeFileResult,
+  T
+>;
 
 export async function getCvmComposeFile<T extends z.ZodSchema | false | undefined = undefined>(
   client: Client,
-  parameters: GetCvmComposeFileParameters<T>,
+  request: GetCvmComposeFileRequest,
+  parameters?: GetCvmComposeFileParameters<T>,
 ): Promise<GetCvmComposeFileReturnType<T>> {
-  const { cvm_id, ...options } = parameters;
+  const validatedRequest = GetCvmComposeFileRequestSchema.parse(request);
 
-  if (!cvm_id || cvm_id.trim() === "") {
-    throw new Error("CVM ID is required");
+  const response = await client.get(`/cvms/${validatedRequest.cvmId}/compose_file`);
+
+  if (parameters?.schema === false) {
+    return response as GetCvmComposeFileReturnType<T>;
   }
 
-  // Transform cvm_id to identifier for API call
-  const result = await client.safeGet(`/cvms/${cvm_id}/compose_file`);
-
-  if (!result.success) {
-    throw result.error;
-  }
-
-  if (options.schema === false) {
-    return result.data as GetCvmComposeFileReturnType<T>;
-  }
-
-  const schema = (options.schema || GetCvmComposeFileResultSchema) as z.ZodSchema;
-  return schema.parse(result.data) as GetCvmComposeFileReturnType<T>;
+  const schema = (parameters?.schema || GetCvmComposeFileResultSchema) as z.ZodSchema;
+  return schema.parse(response) as GetCvmComposeFileReturnType<T>;
 }
 
 export async function safeGetCvmComposeFile<T extends z.ZodSchema | false | undefined = undefined>(
   client: Client,
-  parameters: GetCvmComposeFileParameters<T>,
+  request: GetCvmComposeFileRequest,
+  parameters?: GetCvmComposeFileParameters<T>,
 ): Promise<SafeResult<GetCvmComposeFileReturnType<T>>> {
-  const { cvm_id, ...options } = parameters;
-
-  if (!cvm_id || cvm_id.trim() === "") {
-    return {
-      success: false,
-      error: {
-        isRequestError: true,
-        message: "CVM ID is required",
-        status: 400,
-      },
-    } as SafeResult<GetCvmComposeFileReturnType<T>>;
+  const requestValidation = GetCvmComposeFileRequestSchema.safeParse(request);
+  if (!requestValidation.success) {
+    return requestValidation as SafeResult<GetCvmComposeFileReturnType<T>>;
   }
 
-  // Transform cvm_id to identifier for API call
-  const httpResult = await client.safeGet(`/cvms/${cvm_id}/compose_file`);
-
+  const httpResult = await client.safeGet(`/cvms/${requestValidation.data.cvmId}/compose_file`);
   if (!httpResult.success) {
     return httpResult as SafeResult<GetCvmComposeFileReturnType<T>>;
   }
 
-  if (options.schema === false) {
+  if (parameters?.schema === false) {
     return { success: true, data: httpResult.data } as SafeResult<GetCvmComposeFileReturnType<T>>;
   }
 
-  const schema = (options.schema || GetCvmComposeFileResultSchema) as z.ZodSchema;
+  const schema = (parameters?.schema || GetCvmComposeFileResultSchema) as z.ZodSchema;
   return schema.safeParse(httpResult.data) as SafeResult<GetCvmComposeFileReturnType<T>>;
 }

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
+import { ActionParameters, ActionReturnType } from "../types/common";
+import { KmsInfoSchema } from "../types/kms_info";
 
 /**
  * Provision CVM compose file update
@@ -13,8 +15,9 @@ import { type Client, type SafeResult } from "../client";
  *
  * const client = createClient({ apiKey: 'your-api-key' })
  * const result = await provisionCvmComposeFileUpdate(client, {
- *   cvm_id: 'cvm-123',
- *   request: {
+ *   id: 'cvm-123',
+ *   app_compose: {
+ *     name: 'my-app',
  *     docker_compose_file: 'version: "3.8"\nservices:\n  app:\n    image: nginx'
  *   }
  * })
@@ -25,39 +28,34 @@ import { type Client, type SafeResult } from "../client";
  *
  * `ProvisionCvmComposeFileUpdateResult | unknown`
  *
- * Provision response including compose_hash and metadata needed for committing the update. Return type depends on schema parameter.
+ * Provision response including compose_hash and metadata needed for committing the update.
+ * Return type depends on schema parameter.
  *
  * ## Parameters
  *
- * ### cvm_id (required)
- *
- * - **Type:** `string`
- *
- * The CVM ID to update compose file for. Can be either an app_id or vm_uuid.
- *
  * ### request (required)
- *
  * - **Type:** `ProvisionCvmComposeFileUpdateRequest`
  *
- * The compose file update request containing compose_content and optional metadata.
+ * Request parameters containing the CVM ID and compose file configuration.
  *
- * ### schema (optional)
+ * ### parameters (optional)
+ * - **Type:** `ProvisionCvmComposeFileUpdateParameters`
  *
- * - **Type:** `ZodSchema | false`
- * - **Default:** `ProvisionCvmComposeFileUpdateResultSchema`
- *
- * Schema to validate the response. Use `false` to return raw data without validation.
+ * Optional behavior parameters for schema validation.
  *
  * ```typescript
  * // Use default schema
- * const result = await provisionCvmComposeFileUpdate(client, { cvm_id: 'cvm-123', request: composeRequest })
+ * const result = await provisionCvmComposeFileUpdate(client, {
+ *   id: 'cvm-123',
+ *   app_compose: { name: 'my-app', docker_compose_file: '...' }
+ * })
  *
  * // Return raw data without validation
- * const raw = await provisionCvmComposeFileUpdate(client, { cvm_id: 'cvm-123', request: composeRequest, schema: false })
+ * const raw = await provisionCvmComposeFileUpdate(client, request, { schema: false })
  *
  * // Use custom schema
  * const customSchema = z.object({ compose_hash: z.string() })
- * const custom = await provisionCvmComposeFileUpdate(client, { cvm_id: 'cvm-123', request: composeRequest, schema: customSchema })
+ * const custom = await provisionCvmComposeFileUpdate(client, request, { schema: customSchema })
  * ```
  *
  * ## Safe Version
@@ -67,7 +65,10 @@ import { type Client, type SafeResult } from "../client";
  * ```typescript
  * import { safeProvisionCvmComposeFileUpdate } from '@phala/cloud'
  *
- * const result = await safeProvisionCvmComposeFileUpdate(client, { cvm_id: 'cvm-123', request: composeRequest })
+ * const result = await safeProvisionCvmComposeFileUpdate(client, {
+ *   id: 'cvm-123',
+ *   app_compose: { name: 'my-app', docker_compose_file: '...' }
+ * })
  * if (result.success) {
  *   console.log(`Compose hash: ${result.data.compose_hash}`)
  * } else {
@@ -82,141 +83,129 @@ import { type Client, type SafeResult } from "../client";
 
 export const ProvisionCvmComposeFileUpdateRequestSchema = z
   .object({
-    allowed_envs: z.array(z.string()).optional(),
-    docker_compose_file: z.string(),
-    features: z.array(z.string()).optional(),
-    name: z.string().optional(),
-    manifest_version: z.number().optional(),
-    kms_enabled: z.boolean().optional(),
-    public_logs: z.boolean().optional(),
-    public_sysinfo: z.boolean().optional(),
-    tproxy_enabled: z.boolean().optional(),
-    pre_launch_script: z.string().optional(),
-    docker_config: z
-      .object({
-        url: z.string().optional(),
-        username: z.string().optional(),
-        password: z.string().optional(),
-      })
+    id: z.string().optional(),
+    uuid: z
+      .string()
+      .regex(/^[0-9a-f]{8}[-]?[0-9a-f]{4}[-]?4[0-9a-f]{3}[-]?[89ab][0-9a-f]{3}[-]?[0-9a-f]{12}$/i)
       .optional(),
+    app_id: z
+      .string()
+      .refine(
+        (val) => !val.startsWith("app_") && val.length === 40,
+        "app_id should be 40 characters without prefix",
+      )
+      .transform((val) => (val.startsWith("app_") ? val : `app_${val}`))
+      .optional(),
+    instance_id: z
+      .string()
+      .refine(
+        (val) => !val.startsWith("instance_") && val.length === 40,
+        "instance_id should be 40 characters without prefix",
+      )
+      .transform((val) => (val.startsWith("instance_") ? val : `instance_${val}`))
+      .optional(),
+    app_compose: z.object({
+      allowed_envs: z.array(z.string()).optional(),
+      docker_compose_file: z.string().min(1, "Docker compose file is required"),
+      name: z.string(),
+      kms_enabled: z.boolean().optional(),
+      public_logs: z.boolean().optional(),
+      public_sysinfo: z.boolean().optional(),
+      pre_launch_script: z.string().optional(),
+    }),
   })
-  .passthrough();
+  .refine(
+    (data) => !!(data.id || data.uuid || data.app_id || data.instance_id),
+    "One of id, uuid, app_id, or instance_id must be provided",
+  )
+  .transform((data) => ({
+    cvmId: data.id || data.uuid || data.app_id || data.instance_id,
+    request: data.app_compose,
+    _raw: data,
+  }));
 
 export const ProvisionCvmComposeFileUpdateResultSchema = z
   .object({
-    app_id: z.string().nullable().optional(),
-    device_id: z.string().nullable().optional(),
+    app_id: z.string().nullable(),
+    device_id: z.string().nullable(),
     compose_hash: z.string(),
-    kms_info: z
-      .object({
-        chain_id: z.number(),
-        kms_url: z.string(),
-        kms_contract_address: z.string(),
-      })
-      .nullable()
-      .optional(),
+    kms_info: KmsInfoSchema.nullable().optional(),
   })
   .passthrough();
 
-// Legacy aliases for backwards compatibility
-export const ProvisionCvmComposeFileUpdateSchema = ProvisionCvmComposeFileUpdateResultSchema;
-export type ProvisionCvmComposeFileUpdate = z.infer<typeof ProvisionCvmComposeFileUpdateSchema>;
-export type ProvisionCvmComposeFileUpdateRequest = z.infer<
+export type ProvisionCvmComposeFileUpdateRequest = z.input<
   typeof ProvisionCvmComposeFileUpdateRequestSchema
 >;
 export type ProvisionCvmComposeFileUpdateResult = z.infer<
   typeof ProvisionCvmComposeFileUpdateResultSchema
 >;
 
-export type ProvisionCvmComposeFileUpdateParameters<T = undefined> = {
-  cvm_id: string;
-  request: ProvisionCvmComposeFileUpdateRequest;
-} & (T extends z.ZodSchema
-  ? { schema: T }
-  : T extends false
-    ? { schema: false }
-    : { schema?: z.ZodSchema | false });
+export type ProvisionCvmComposeFileUpdateParameters<T = undefined> = ActionParameters<T>;
+export type ProvisionCvmComposeFileUpdateReturnType<T = undefined> = ActionReturnType<
+  ProvisionCvmComposeFileUpdateResult,
+  T
+>;
 
-export type ProvisionCvmComposeFileUpdateReturnType<T = undefined> = T extends z.ZodSchema
-  ? z.infer<T>
-  : T extends false
-    ? unknown
-    : ProvisionCvmComposeFileUpdateResult;
-
+/**
+ * Provision a CVM compose file update
+ *
+ * @param client - The API client
+ * @param request - Request parameters containing CVM ID and compose file configuration
+ * @param parameters - Optional behavior parameters
+ * @returns Update provision result
+ */
 export async function provisionCvmComposeFileUpdate<
   T extends z.ZodSchema | false | undefined = undefined,
 >(
   client: Client,
-  parameters: ProvisionCvmComposeFileUpdateParameters<T>,
+  request: ProvisionCvmComposeFileUpdateRequest,
+  parameters?: ProvisionCvmComposeFileUpdateParameters<T>,
 ): Promise<ProvisionCvmComposeFileUpdateReturnType<T>> {
-  const { cvm_id, request, ...options } = parameters;
+  const validatedRequest = ProvisionCvmComposeFileUpdateRequestSchema.parse(request);
 
-  if (!cvm_id || cvm_id.trim() === "") {
-    throw new Error("CVM ID is required");
+  const response = await client.post(
+    `/cvms/${validatedRequest.cvmId}/compose_file/provision`,
+    validatedRequest.request,
+  );
+
+  if (parameters?.schema === false) {
+    return response as ProvisionCvmComposeFileUpdateReturnType<T>;
   }
 
-  if (!request.docker_compose_file || request.docker_compose_file.trim() === "") {
-    throw new Error("Docker compose file is required");
-  }
-
-  // Transform cvm_id to identifier for API call
-  const result = await client.safePost(`/cvms/${cvm_id}/compose_file/provision`, request);
-  if (!result.success) {
-    throw result.error;
-  }
-
-  if (options.schema === false) {
-    return result.data as ProvisionCvmComposeFileUpdateReturnType<T>;
-  }
-
-  const schema = (options.schema || ProvisionCvmComposeFileUpdateResultSchema) as z.ZodSchema;
-  return schema.parse(result.data) as ProvisionCvmComposeFileUpdateReturnType<T>;
+  const schema = (parameters?.schema || ProvisionCvmComposeFileUpdateResultSchema) as z.ZodSchema;
+  return schema.parse(response) as ProvisionCvmComposeFileUpdateReturnType<T>;
 }
 
+/**
+ * Safe version of provisionCvmComposeFileUpdate that returns a Result type instead of throwing
+ */
 export async function safeProvisionCvmComposeFileUpdate<
   T extends z.ZodSchema | false | undefined = undefined,
 >(
   client: Client,
-  parameters: ProvisionCvmComposeFileUpdateParameters<T>,
+  request: ProvisionCvmComposeFileUpdateRequest,
+  parameters?: ProvisionCvmComposeFileUpdateParameters<T>,
 ): Promise<SafeResult<ProvisionCvmComposeFileUpdateReturnType<T>>> {
-  const { cvm_id, request, ...options } = parameters;
-
-  if (!cvm_id || cvm_id.trim() === "") {
-    return {
-      success: false,
-      error: {
-        isRequestError: true,
-        message: "CVM ID is required",
-        status: 400,
-      },
-    } as SafeResult<ProvisionCvmComposeFileUpdateReturnType<T>>;
+  const requestValidation = ProvisionCvmComposeFileUpdateRequestSchema.safeParse(request);
+  if (!requestValidation.success) {
+    return requestValidation as SafeResult<ProvisionCvmComposeFileUpdateReturnType<T>>;
   }
 
-  if (!request.docker_compose_file || request.docker_compose_file.trim() === "") {
-    return {
-      success: false,
-      error: {
-        isRequestError: true,
-        message: "Docker compose file is required",
-        status: 400,
-      },
-    } as SafeResult<ProvisionCvmComposeFileUpdateReturnType<T>>;
-  }
-
-  // Transform cvm_id to identifier for API call
-  const httpResult = await client.safePost(`/cvms/${cvm_id}/compose_file/provision`, request);
-
+  const httpResult = await client.safePost(
+    `/cvms/${requestValidation.data.cvmId}/compose_file/provision`,
+    requestValidation.data.request,
+  );
   if (!httpResult.success) {
     return httpResult as SafeResult<ProvisionCvmComposeFileUpdateReturnType<T>>;
   }
 
-  if (options.schema === false) {
+  if (parameters?.schema === false) {
     return { success: true, data: httpResult.data } as SafeResult<
       ProvisionCvmComposeFileUpdateReturnType<T>
     >;
   }
 
-  const schema = (options.schema || ProvisionCvmComposeFileUpdateResultSchema) as z.ZodSchema;
+  const schema = (parameters?.schema || ProvisionCvmComposeFileUpdateResultSchema) as z.ZodSchema;
   return schema.safeParse(httpResult.data) as SafeResult<
     ProvisionCvmComposeFileUpdateReturnType<T>
   >;

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
 import { KmsInfoSchema } from "../types/kms_info";
+import { ActionParameters, ActionReturnType } from "../types/common";
 
 /**
  * Get available teepods and their capacity information
@@ -24,12 +25,10 @@ import { KmsInfoSchema } from "../types/kms_info";
  *
  * ## Parameters
  *
- * ### schema (optional)
+ * ### parameters (optional)
+ * - **Type:** `GetAvailableNodesParameters`
  *
- * - **Type:** `ZodSchema | false`
- * - **Default:** `AvailableNodesSchema`
- *
- * Schema to validate the response. Use `false` to return raw data without validation.
+ * Optional behavior parameters for schema validation.
  *
  * ```typescript
  * // Use default schema
@@ -112,17 +111,9 @@ export type TeepodCapacity = z.infer<typeof TeepodCapacitySchema>;
 export type ResourceThreshold = z.infer<typeof ResourceThresholdSchema>;
 export type AvailableNodes = z.infer<typeof AvailableNodesSchema>;
 
-export type GetAvailableNodesParameters<T = undefined> = T extends z.ZodSchema
-  ? { schema: T }
-  : T extends false
-    ? { schema: false }
-    : { schema?: z.ZodSchema | false };
+export type GetAvailableNodesParameters<T = undefined> = ActionParameters<T>;
 
-export type GetAvailableNodesReturnType<T = undefined> = T extends z.ZodSchema
-  ? z.infer<T>
-  : T extends false
-    ? unknown
-    : AvailableNodes;
+export type GetAvailableNodesReturnType<T = undefined> = ActionReturnType<AvailableNodes, T>;
 
 export async function getAvailableNodes<T extends z.ZodSchema | false | undefined = undefined>(
   client: Client,
