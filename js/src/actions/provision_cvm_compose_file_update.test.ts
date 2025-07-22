@@ -15,26 +15,20 @@ describe("provisionCvmComposeFileUpdate", () => {
     vi.clearAllMocks();
     
     mockClient = {
+      post: vi.fn(),
       safePost: vi.fn(),
     } as unknown as Client;
   });
 
-  const mockProvisionRequest = {
+  const mockAppCompose = {
     docker_compose_file: "version: '3.8'\nservices:\n  app:\n    image: nginx",
     allowed_envs: ["API_KEY", "DATABASE_URL"],
-    features: ["kms"],
     name: "test-app",
-    manifest_version: 1,
-    kms_enabled: true,
-    public_logs: false,
-    public_sysinfo: false,
-    tproxy_enabled: true,
-    pre_launch_script: "#!/bin/bash\necho 'Starting app'",
-    docker_config: {
-      url: "https://registry.example.com",
-      username: "user",
-      password: "pass",
-    },
+  };
+
+  const mockProvisionRequest = {
+    id: "cvm-123",
+    app_compose: mockAppCompose,
   };
 
   const mockProvisionResponse = {
@@ -42,39 +36,31 @@ describe("provisionCvmComposeFileUpdate", () => {
     device_id: "device-456",
     compose_hash: "abc123def456",
     kms_info: {
+      id: "kms-123",
+      slug: "test-kms",
+      url: "https://kms.example.com",
+      version: "1.0.0",
       chain_id: 1,
-      kms_url: "https://kms.example.com",
       kms_contract_address: "0x1234567890abcdef",
+      gateway_app_id: "0x123456789abcdef",
     },
   };
 
   describe("Standard version", () => {
     it("should return provision data successfully", async () => {
-      (mockClient.safePost as any).mockResolvedValue({
-        success: true,
-        data: mockProvisionResponse,
-      });
+      (mockClient.post as any).mockResolvedValue(mockProvisionResponse);
 
-      const result = await provisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
-      });
+      const result = await provisionCvmComposeFileUpdate(mockClient, mockProvisionRequest);
 
-      expect(mockClient.safePost).toHaveBeenCalledWith("/cvms/cvm-123/compose_file/provision", mockProvisionRequest);
+      expect(mockClient.post).toHaveBeenCalledWith("/cvms/cvm-123/compose_file/provision", mockAppCompose);
       expect(result).toEqual(mockProvisionResponse);
     });
 
     it("should validate response data with Zod schema", async () => {
       const invalidResponse = { invalid: "data" };
-      (mockClient.safePost as any).mockResolvedValue({
-        success: true,
-        data: invalidResponse,
-      });
+      (mockClient.post as any).mockResolvedValue(invalidResponse);
 
-      await expect(provisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
-      })).rejects.toThrow();
+      await expect(provisionCvmComposeFileUpdate(mockClient, mockProvisionRequest)).rejects.toThrow();
     });
 
     it("should handle API errors (throws)", async () => {
@@ -84,27 +70,16 @@ describe("provisionCvmComposeFileUpdate", () => {
         status: 400,
         detail: "Docker compose file is invalid",
       };
-      (mockClient.safePost as any).mockResolvedValue({
-        success: false,
-        error,
-      });
+      (mockClient.post as any).mockRejectedValue(error);
 
-      await expect(provisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
-      })).rejects.toEqual(error);
+      await expect(provisionCvmComposeFileUpdate(mockClient, mockProvisionRequest)).rejects.toEqual(error);
     });
 
     it("should return raw data when schema is false", async () => {
       const rawData = { some: "raw", data: 123 };
-      (mockClient.safePost as any).mockResolvedValue({
-        success: true,
-        data: rawData,
-      });
+      (mockClient.post as any).mockResolvedValue(rawData);
 
-      const result = await provisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
+      const result = await provisionCvmComposeFileUpdate(mockClient, mockProvisionRequest, {
         schema: false,
       });
 
@@ -114,14 +89,9 @@ describe("provisionCvmComposeFileUpdate", () => {
     it("should use custom schema when provided", async () => {
       const customSchema = z.object({ compose_hash: z.string() });
       const customData = { compose_hash: "custom-hash" };
-      (mockClient.safePost as any).mockResolvedValue({
-        success: true,
-        data: customData,
-      });
+      (mockClient.post as any).mockResolvedValue(customData);
 
-      const result = await provisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
+      const result = await provisionCvmComposeFileUpdate(mockClient, mockProvisionRequest, {
         schema: customSchema,
       });
 
@@ -130,32 +100,27 @@ describe("provisionCvmComposeFileUpdate", () => {
 
     it("should throw when custom schema validation fails", async () => {
       const customSchema = z.object({ required_field: z.string() });
-      (mockClient.safePost as any).mockResolvedValue({
-        success: true,
-        data: { wrong_field: "value" },
-      });
+      (mockClient.post as any).mockResolvedValue({ wrong_field: "value" });
 
-      await expect(provisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
+      await expect(provisionCvmComposeFileUpdate(mockClient, mockProvisionRequest, {
         schema: customSchema,
       })).rejects.toThrow();
     });
 
     it("should throw when cvm_id is missing", async () => {
-      await expect(provisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "",
-        request: mockProvisionRequest,
-      })).rejects.toThrow("CVM ID is required");
+      const invalidRequest = { ...mockProvisionRequest };
+      delete invalidRequest.id;
+
+      await expect(provisionCvmComposeFileUpdate(mockClient, invalidRequest)).rejects.toThrow();
     });
 
     it("should throw when docker_compose_file is missing", async () => {
-      const invalidRequest = { ...mockProvisionRequest, docker_compose_file: "" };
+      const invalidRequest = { 
+        ...mockProvisionRequest, 
+        app_compose: { ...mockAppCompose, docker_compose_file: "" }
+      };
       
-      await expect(provisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: invalidRequest,
-      })).rejects.toThrow("Docker compose file is required");
+      await expect(provisionCvmComposeFileUpdate(mockClient, invalidRequest)).rejects.toThrow();
     });
   });
 
@@ -166,10 +131,7 @@ describe("provisionCvmComposeFileUpdate", () => {
         data: mockProvisionResponse,
       });
 
-      const result = await safeProvisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
-      });
+      const result = await safeProvisionCvmComposeFileUpdate(mockClient, mockProvisionRequest);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -189,10 +151,7 @@ describe("provisionCvmComposeFileUpdate", () => {
         error,
       });
 
-      const result = await safeProvisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
-      });
+      const result = await safeProvisionCvmComposeFileUpdate(mockClient, mockProvisionRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -206,10 +165,7 @@ describe("provisionCvmComposeFileUpdate", () => {
         data: { invalid: "data" },
       });
 
-      const result = await safeProvisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
-      });
+      const result = await safeProvisionCvmComposeFileUpdate(mockClient, mockProvisionRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -229,10 +185,7 @@ describe("provisionCvmComposeFileUpdate", () => {
         error: httpError,
       });
 
-      const result = await safeProvisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
-      });
+      const result = await safeProvisionCvmComposeFileUpdate(mockClient, mockProvisionRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -247,9 +200,7 @@ describe("provisionCvmComposeFileUpdate", () => {
         data: rawData,
       });
 
-      const result = await safeProvisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
+      const result = await safeProvisionCvmComposeFileUpdate(mockClient, mockProvisionRequest, {
         schema: false,
       });
 
@@ -267,9 +218,7 @@ describe("provisionCvmComposeFileUpdate", () => {
         data: customData,
       });
 
-      const result = await safeProvisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
+      const result = await safeProvisionCvmComposeFileUpdate(mockClient, mockProvisionRequest, {
         schema: customSchema,
       });
 
@@ -286,9 +235,7 @@ describe("provisionCvmComposeFileUpdate", () => {
         data: { wrong_field: "value" },
       });
 
-      const result = await safeProvisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
+      const result = await safeProvisionCvmComposeFileUpdate(mockClient, mockProvisionRequest, {
         schema: customSchema,
       });
 
@@ -299,53 +246,39 @@ describe("provisionCvmComposeFileUpdate", () => {
     });
 
     it("should return error when cvm_id is missing", async () => {
-      const result = await safeProvisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "",
-        request: mockProvisionRequest,
-      });
+      const invalidRequest = { ...mockProvisionRequest };
+      delete invalidRequest.id;
+
+      const result = await safeProvisionCvmComposeFileUpdate(mockClient, invalidRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect("isRequestError" in result.error).toBe(true);
-        expect(result.error.message).toBe("CVM ID is required");
-        if ("isRequestError" in result.error && result.error.isRequestError) {
-          expect(result.error.status).toBe(400);
-        }
+        expect("issues" in result.error).toBe(true);
       }
     });
 
     it("should return error when docker_compose_file is missing", async () => {
-      const invalidRequest = { ...mockProvisionRequest, docker_compose_file: "" };
+      const invalidRequest = { 
+        ...mockProvisionRequest, 
+        app_compose: { ...mockAppCompose, docker_compose_file: "" }
+      };
       
-      const result = await safeProvisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: invalidRequest,
-      });
+      const result = await safeProvisionCvmComposeFileUpdate(mockClient, invalidRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect("isRequestError" in result.error).toBe(true);
-        expect(result.error.message).toBe("Docker compose file is required");
-        if ("isRequestError" in result.error && result.error.isRequestError) {
-          expect(result.error.status).toBe(400);
-        }
+        expect("issues" in result.error).toBe(true);
       }
     });
   });
 
   describe("Parameter handling", () => {
     it("should work with cvm_id and request parameters", async () => {
-      (mockClient.safePost as any).mockResolvedValue({
-        success: true,
-        data: mockProvisionResponse,
-      });
+      (mockClient.post as any).mockResolvedValue(mockProvisionResponse);
 
-      const result = await provisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
-      });
+      const result = await provisionCvmComposeFileUpdate(mockClient, mockProvisionRequest);
 
-      expect(mockClient.safePost).toHaveBeenCalledWith("/cvms/cvm-123/compose_file/provision", mockProvisionRequest);
+      expect(mockClient.post).toHaveBeenCalledWith("/cvms/cvm-123/compose_file/provision", mockAppCompose);
       expect(result).toEqual(mockProvisionResponse);
     });
 
@@ -355,10 +288,7 @@ describe("provisionCvmComposeFileUpdate", () => {
         data: mockProvisionResponse,
       });
 
-      const result = await safeProvisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
-      });
+      const result = await safeProvisionCvmComposeFileUpdate(mockClient, mockProvisionRequest);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -374,15 +304,9 @@ describe("provisionCvmComposeFileUpdate", () => {
         extra_field: "extra_value",
         future_feature: { nested: "data" },
       };
-      (mockClient.safePost as any).mockResolvedValue({
-        success: true,
-        data: responseWithExtraFields,
-      });
+      (mockClient.post as any).mockResolvedValue(responseWithExtraFields);
 
-      const result = await provisionCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockProvisionRequest,
-      });
+      const result = await provisionCvmComposeFileUpdate(mockClient, mockProvisionRequest);
 
       expect(result).toEqual(responseWithExtraFields);
     });

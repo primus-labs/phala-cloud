@@ -7,6 +7,7 @@ import {
   type AvailableNodes,
   AvailableNodesSchema,
 } from "./get_available_nodes";
+import type { Client } from "../client";
 
 // Mock response data matching the API structure
 const mockAvailableNodesData: AvailableNodes = {
@@ -38,7 +39,6 @@ const mockAvailableNodesData: AvailableNodes = {
       support_onchain_kms: false,
       fmspc: null,
       device_id: null,
-      slug: "teepod-1",
     },
   ],
   kms_list: [
@@ -48,15 +48,14 @@ const mockAvailableNodesData: AvailableNodes = {
       url: "https://kms.example.com",
       version: "1.0.0",
       chain_id: 1,
-      kms_contract_address: "0xabc",
-      // @ts-expect-error
-      gateway_app_id: null,
+      kms_contract_address: "0xabc" as any,
+      gateway_app_id: "0xdef" as any,
     },
   ],
 };
 
 describe("getAvailableNodes", () => {
-  let mockClient: ReturnType<typeof createClient>;
+  let mockClient: Client;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -64,48 +63,42 @@ describe("getAvailableNodes", () => {
     mockClient = {
       get: vi.fn(),
       safeGet: vi.fn(),
-    } as unknown as ReturnType<typeof createClient>;
+    } as unknown as Client;
   });
 
   describe("getAvailableNodes", () => {
     it("should return data successfully", async () => {
-      // @ts-expect-error
-      mockClient.get.mockResolvedValueOnce(mockAvailableNodesData);
+      (mockClient.get as jest.Mock).mockResolvedValueOnce(mockAvailableNodesData);
       const result = await getAvailableNodes(mockClient);
       expect(result).toEqual(mockAvailableNodesData);
     });
 
     it("should validate response data with zod schema", async () => {
-      // @ts-expect-error
-      mockClient.get.mockResolvedValueOnce(mockAvailableNodesData);
+      (mockClient.get as jest.Mock).mockResolvedValueOnce(mockAvailableNodesData);
       const result = await getAvailableNodes(mockClient);
       expect(AvailableNodesSchema.parse(result)).toEqual(mockAvailableNodesData);
     });
 
     it("should handle API errors properly", async () => {
-      // @ts-expect-error
-      mockClient.get.mockRejectedValueOnce(new Error("API error"));
+      (mockClient.get as jest.Mock).mockRejectedValueOnce(new Error("API error"));
       await expect(getAvailableNodes(mockClient)).rejects.toThrow("API error");
     });
 
     it("should return raw data when schema is false", async () => {
-      // @ts-expect-error
-      mockClient.get.mockResolvedValueOnce(mockAvailableNodesData);
+      (mockClient.get as jest.Mock).mockResolvedValueOnce(mockAvailableNodesData);
       const result = await getAvailableNodes(mockClient, { schema: false });
       expect(result).toEqual(mockAvailableNodesData);
     });
 
     it("should use custom schema when provided", async () => {
-      // @ts-expect-error
-      mockClient.get.mockResolvedValueOnce({ tier: "free" });
+      (mockClient.get as jest.Mock).mockResolvedValueOnce({ tier: "free" });
       const customSchema = z.object({ tier: z.string() });
       const result = await getAvailableNodes(mockClient, { schema: customSchema });
       expect(result).toEqual({ tier: "free" });
     });
 
     it("should throw when custom schema validation fails", async () => {
-      // @ts-expect-error
-      mockClient.get.mockResolvedValueOnce({ foo: "bar" });
+      (mockClient.get as jest.Mock).mockResolvedValueOnce({ foo: "bar" });
       const customSchema = z.object({ tier: z.string() });
       await expect(getAvailableNodes(mockClient, { schema: customSchema })).rejects.toThrow();
     });
@@ -113,8 +106,7 @@ describe("getAvailableNodes", () => {
 
   describe("safeGetAvailableNodes", () => {
     it("should return success result when API call succeeds", async () => {
-      // @ts-expect-error
-      mockClient.safeGet.mockResolvedValueOnce({ success: true, data: mockAvailableNodesData });
+      (mockClient.safeGet as jest.Mock).mockResolvedValueOnce({ success: true, data: mockAvailableNodesData });
       const result = await safeGetAvailableNodes(mockClient);
       expect(result.success).toBe(true);
       if (result.success) {
@@ -123,8 +115,7 @@ describe("getAvailableNodes", () => {
     });
 
     it("should return error result when API call fails", async () => {
-      // @ts-expect-error
-      mockClient.safeGet.mockResolvedValueOnce({ success: false, error: { isRequestError: true, status: 500, message: "fail" } });
+      (mockClient.safeGet as jest.Mock).mockResolvedValueOnce({ success: false, error: { isRequestError: true, status: 500, message: "fail" } });
       const result = await safeGetAvailableNodes(mockClient);
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -135,8 +126,7 @@ describe("getAvailableNodes", () => {
     });
 
     it("should handle zod validation errors", async () => {
-      // @ts-expect-error
-      mockClient.safeGet.mockResolvedValueOnce({ success: true, data: { foo: "bar" } });
+      (mockClient.safeGet as jest.Mock).mockResolvedValueOnce({ success: true, data: { foo: "bar" } });
       const result = await safeGetAvailableNodes(mockClient);
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -147,8 +137,7 @@ describe("getAvailableNodes", () => {
     });
 
     it("should pass through HTTP errors directly", async () => {
-      // @ts-expect-error
-      mockClient.safeGet.mockResolvedValueOnce({ success: false, error: { isRequestError: true, status: 400, message: "bad request" } });
+      (mockClient.safeGet as jest.Mock).mockResolvedValueOnce({ success: false, error: { isRequestError: true, status: 400, message: "bad request" } });
       const result = await safeGetAvailableNodes(mockClient);
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -159,8 +148,7 @@ describe("getAvailableNodes", () => {
     });
 
     it("should return raw data when schema is false", async () => {
-      // @ts-expect-error
-      mockClient.safeGet.mockResolvedValueOnce({ success: true, data: mockAvailableNodesData });
+      (mockClient.safeGet as jest.Mock).mockResolvedValueOnce({ success: true, data: mockAvailableNodesData });
       const result = await safeGetAvailableNodes(mockClient, { schema: false });
       expect(result.success).toBe(true);
       if (result.success) {
@@ -169,8 +157,7 @@ describe("getAvailableNodes", () => {
     });
 
     it("should use custom schema when provided", async () => {
-      // @ts-expect-error
-      mockClient.safeGet.mockResolvedValueOnce({ success: true, data: { tier: "free" } });
+      (mockClient.safeGet as jest.Mock).mockResolvedValueOnce({ success: true, data: { tier: "free" } });
       const customSchema = z.object({ tier: z.string() });
       const result = await safeGetAvailableNodes(mockClient, { schema: customSchema });
       expect(result.success).toBe(true);
@@ -180,8 +167,7 @@ describe("getAvailableNodes", () => {
     });
 
     it("should return validation error when custom schema fails", async () => {
-      // @ts-expect-error
-      mockClient.safeGet.mockResolvedValueOnce({ success: true, data: { foo: "bar" } });
+      (mockClient.safeGet as jest.Mock).mockResolvedValueOnce({ success: true, data: { foo: "bar" } });
       const customSchema = z.object({ tier: z.string() });
       const result = await safeGetAvailableNodes(mockClient, { schema: customSchema });
       expect(result.success).toBe(false);
@@ -195,23 +181,22 @@ describe("getAvailableNodes", () => {
 
   describe("parameter handling", () => {
     it("should work without parameters", async () => {
-      // @ts-expect-error
-      mockClient.get.mockResolvedValueOnce(mockAvailableNodesData);
+      (mockClient.get as jest.Mock).mockResolvedValueOnce(mockAvailableNodesData);
       await expect(getAvailableNodes(mockClient)).resolves.toBeDefined();
     });
+
     it("should work with empty parameters object", async () => {
-      // @ts-expect-error
-      mockClient.get.mockResolvedValueOnce(mockAvailableNodesData);
+      (mockClient.get as jest.Mock).mockResolvedValueOnce(mockAvailableNodesData);
       await expect(getAvailableNodes(mockClient, {})).resolves.toBeDefined();
     });
+
     it("should work with safe version without parameters", async () => {
-      // @ts-expect-error
-      mockClient.safeGet.mockResolvedValueOnce({ success: true, data: mockAvailableNodesData });
+      (mockClient.safeGet as jest.Mock).mockResolvedValueOnce({ success: true, data: mockAvailableNodesData });
       await expect(safeGetAvailableNodes(mockClient)).resolves.toBeDefined();
     });
+
     it("should work with safe version with empty parameters object", async () => {
-      // @ts-expect-error
-      mockClient.safeGet.mockResolvedValueOnce({ success: true, data: mockAvailableNodesData });
+      (mockClient.safeGet as jest.Mock).mockResolvedValueOnce({ success: true, data: mockAvailableNodesData });
       await expect(safeGetAvailableNodes(mockClient, {})).resolves.toBeDefined();
     });
   });
@@ -219,8 +204,7 @@ describe("getAvailableNodes", () => {
   describe("schema flexibility", () => {
     it("should allow extra fields in API response for forward compatibility", async () => {
       const extra = { ...mockAvailableNodesData, extra_field: "extra" };
-      // @ts-expect-error
-      mockClient.get.mockResolvedValueOnce(extra);
+      (mockClient.get as jest.Mock).mockResolvedValueOnce(extra);
       const result = await getAvailableNodes(mockClient);
       expect(result).toMatchObject({ ...mockAvailableNodesData, extra_field: "extra" });
     });

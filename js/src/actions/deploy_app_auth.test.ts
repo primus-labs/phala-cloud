@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from "vitest";
 import { z } from "zod";
-import { createPublicClient, createWalletClient, parseEventLogs, parseEther } from "viem";
+import { createPublicClient, createWalletClient, parseEventLogs, parseEther, type PublicClient, type WalletClient, type Hash, type TransactionReceipt } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import { 
@@ -49,15 +49,19 @@ const mockParseEventLogs = parseEventLogs as MockedFunction<typeof parseEventLog
 const mockPrivateKeyToAccount = privateKeyToAccount as MockedFunction<typeof privateKeyToAccount>;
 
 describe("deployAppAuth", () => {
-  let mockPublicClient: any;
-  let mockWalletClient: any;
-  let mockAccount: any;
-  let mockTransactionTracker: any;
+  let mockPublicClient: Partial<PublicClient>;
+  let mockWalletClient: Partial<WalletClient>;
+  let mockAccount: { address: `0x${string}` };
+  let mockTransactionTracker: {
+    status: { state: string };
+    isComplete: boolean;
+    execute: MockedFunction<(operation: any, clients: any, args: any[], options: any) => Promise<{ hash: Hash; receipt: TransactionReceipt; success: boolean }>>;
+  };
 
   const validRequest: DeployAppAuthRequest = {
     chain: base, // Use proper viem chain
-    kmsContractAddress: "0x1234567890abcdef1234567890abcdef12345678",
-    privateKey: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+    kmsContractAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+    privateKey: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" as `0x${string}`,
     deviceId: "1234567890abcdef1234567890abcdef", // This will auto-set allowAnyDevice to false
     composeHash: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
   };
@@ -71,7 +75,7 @@ describe("deployAppAuth", () => {
     gasUsed: 500000n,
   };
 
-  const mockReceipt = {
+  const mockReceipt: TransactionReceipt = {
     transactionHash: mockDeploymentResult.transactionHash,
     blockHash: "0xblockhash123456789abcdef123456789abcdef123456789abcdef123456789abcdef" as `0x${string}`,
     blockNumber: mockDeploymentResult.blockNumber,
@@ -105,7 +109,7 @@ describe("deployAppAuth", () => {
 
     // Mock account
     mockAccount = {
-      address: mockDeploymentResult.deployer,
+      address: mockDeploymentResult.deployer as `0x${string}`,
     };
     mockPrivateKeyToAccount.mockReturnValue(mockAccount);
 
@@ -113,9 +117,9 @@ describe("deployAppAuth", () => {
     mockPublicClient = {
       getBalance: vi.fn().mockResolvedValue(parseEther("1.0")), // 1 ETH balance
       getChainId: vi.fn().mockResolvedValue(base.id),
-      getCode: vi.fn().mockResolvedValue("0x608060405234801561001057600080fd5b50"), // Mock contract bytecode
+      getCode: vi.fn().mockResolvedValue("0x608060405234801561001057600080fd5b50" as `0x${string}`), // Mock contract bytecode
     };
-    mockCreatePublicClient.mockReturnValue(mockPublicClient);
+    mockCreatePublicClient.mockReturnValue(mockPublicClient as PublicClient);
 
     // Mock wallet client
     mockWalletClient = {
@@ -123,7 +127,7 @@ describe("deployAppAuth", () => {
       writeContract: vi.fn().mockResolvedValue(mockDeploymentResult.transactionHash),
       getChainId: vi.fn().mockResolvedValue(base.id),
     };
-    mockCreateWalletClient.mockReturnValue(mockWalletClient);
+    mockCreateWalletClient.mockReturnValue(mockWalletClient as WalletClient);
 
     // Mock transaction tracker
     mockTransactionTracker = {
@@ -131,7 +135,7 @@ describe("deployAppAuth", () => {
       isComplete: false,
       execute: vi.fn().mockResolvedValue({
         hash: mockDeploymentResult.transactionHash,
-        receipt: mockReceipt as any, // Cast to any to avoid deep type issues in test
+        receipt: mockReceipt,
         success: true,
       }),
     };
@@ -139,8 +143,8 @@ describe("deployAppAuth", () => {
 
     // Mock executeTransactionWithRetry
     mockExecuteTransactionWithRetry.mockResolvedValue({
-      hash: mockDeploymentResult.transactionHash as `0x${string}`,
-      receipt: mockReceipt as any, // Cast to any to avoid deep type issues in test
+      hash: mockDeploymentResult.transactionHash,
+      receipt: mockReceipt,
       success: true,
     });
 
@@ -170,7 +174,7 @@ describe("deployAppAuth", () => {
         blockNumber: 12345n,
         data: "0xdata123456789abcdef123456789abcdef123456789abcdef123456789abcdef12" as `0x${string}`,
         logIndex: 0,
-        transactionHash: mockDeploymentResult.transactionHash as `0x${string}`,
+        transactionHash: mockDeploymentResult.transactionHash,
         transactionIndex: 0,
         removed: false,
         topics: [],
@@ -212,7 +216,7 @@ describe("deployAppAuth", () => {
       const requestWithWallet: DeployAppAuthRequest = {
         chain: base,
         kmsContractAddress: validRequest.kmsContractAddress,
-        walletClient: mockWalletClient,
+        walletClient: mockWalletClient as WalletClient,
       };
 
       await deployAppAuth(requestWithWallet);
@@ -293,6 +297,64 @@ describe("deployAppAuth", () => {
           initialDelay: 1000,
         })
       );
+    });
+
+    it("should handle abort signal", async () => {
+      const abortController = new AbortController();
+      const request: DeployAppAuthRequest = {
+        ...validRequest,
+        signal: abortController.signal,
+      };
+
+      // Mock transaction tracker execute method to handle abort signal
+      mockTransactionTracker.execute = vi.fn().mockImplementation(async (deployOp, networkClients, args, options) => {
+        // Check for abort signal periodically during execution
+        for (let i = 0; i < 10; i++) {
+          if (options?.signal?.aborted) {
+            throw new DOMException("Operation was aborted", "AbortError");
+          }
+          await new Promise(resolve => setTimeout(resolve, 2)); // Wait 2ms each iteration (20ms total)
+        }
+        
+        // Final check before returning
+        if (options?.signal?.aborted) {
+          throw new DOMException("Operation was aborted", "AbortError");
+        }
+        
+        return {
+          hash: mockDeploymentResult.transactionHash,
+          receipt: mockReceipt,
+          success: true,
+        };
+      });
+
+      const deployPromise = deployAppAuth(request);
+      
+      // Abort after a small delay to ensure the promise is in flight
+      setTimeout(() => abortController.abort(), 5);
+
+      await expect(deployPromise).rejects.toThrow("Operation was aborted");
+    });
+
+    it("should handle minBalance parameter", async () => {
+      const request: DeployAppAuthRequest = {
+        ...validRequest,
+        minBalance: "0.5", // Require 0.5 ETH
+      };
+
+      // Mock balance check to fail
+      mockValidateNetworkPrerequisites.mockResolvedValueOnce({
+        networkValid: true,
+        balanceValid: false,
+        addressValid: true,
+        details: {
+          currentChainId: base.id,
+          balance: parseEther("0.1"), // Only 0.1 ETH
+          address: mockAccount.address,
+        },
+      });
+
+      await expect(deployAppAuth(request)).rejects.toThrow("Not enough ETH");
     });
 
     it("should skip prerequisite checks when requested", async () => {

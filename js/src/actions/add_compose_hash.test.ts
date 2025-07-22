@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from "vitest";
 import { z } from "zod";
-import { createPublicClient, createWalletClient, parseEventLogs, parseEther } from "viem";
+import { createPublicClient, createWalletClient, parseEventLogs, parseEther, type PublicClient, type WalletClient, type Hash, type TransactionReceipt } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import {
@@ -54,10 +54,31 @@ const mockCreateTransactionTracker = createTransactionTracker as MockedFunction<
 const mockExecuteTransactionWithRetry = executeTransactionWithRetry as MockedFunction<typeof executeTransactionWithRetry>;
 
 describe("addComposeHash", () => {
-  let mockPublicClient: any;
-  let mockWalletClient: any;
-  let mockTransactionTracker: any;
+  let mockPublicClient: Partial<PublicClient>;
+  let mockWalletClient: Partial<WalletClient>;
+  let mockTransactionTracker: {
+    status: { state: string };
+    isComplete: boolean;
+    execute: MockedFunction<(operation: any, clients: any, args: any[], options: any) => Promise<{ hash: Hash; receipt: TransactionReceipt; success: boolean }>>;
+  };
   let validRequest: AddComposeHashRequest;
+
+  const mockReceipt: TransactionReceipt = {
+    transactionHash: "0x123...abc" as `0x${string}`,
+    blockNumber: BigInt(1234567),
+    gasUsed: BigInt(21000),
+    logs: [],
+    status: "success",
+    blockHash: "0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd" as `0x${string}`,
+    contractAddress: null,
+    cumulativeGasUsed: BigInt(21000),
+    effectiveGasPrice: BigInt(1000000000),
+    from: "0xabcdef1234567890abcdef1234567890abcdef12" as `0x${string}`,
+    logsBloom: "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`,
+    to: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+    transactionIndex: 0,
+    type: "eip1559" as const,
+  };
 
   beforeEach(() => {
     // Reset all mocks
@@ -65,13 +86,13 @@ describe("addComposeHash", () => {
 
     // Mock PublicClient
     mockPublicClient = {
-      readContract: vi.fn().mockResolvedValue([true, "0x1234567890abcdef1234567890abcdef12345678"]),
+      readContract: vi.fn().mockResolvedValue([true, "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`]),
     };
 
     // Mock WalletClient
     mockWalletClient = {
       account: {
-        address: "0xabcdef1234567890abcdef1234567890abcdef12" as const,
+        address: "0xabcdef1234567890abcdef1234567890abcdef12" as `0x${string}`,
       },
       chain: base,
       writeContract: vi.fn().mockResolvedValue("0x123...abc" as `0x${string}`),
@@ -84,29 +105,14 @@ describe("addComposeHash", () => {
       isComplete: false,
       execute: vi.fn().mockResolvedValue({
         hash: "0x123...abc" as `0x${string}`,
-        receipt: {
-          transactionHash: "0x123...abc" as `0x${string}`,
-          blockNumber: BigInt(1234567),
-          gasUsed: BigInt(21000),
-          logs: [],
-          status: "success",
-          blockHash: "0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd" as `0x${string}`,
-          contractAddress: null,
-          cumulativeGasUsed: BigInt(21000),
-          effectiveGasPrice: BigInt(1000000000),
-          from: "0xabcdef1234567890abcdef1234567890abcdef12" as `0x${string}`,
-          logsBloom: "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`,
-          to: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
-          transactionIndex: 0,
-          type: "eip1559" as const,
-        },
+        receipt: mockReceipt,
         success: true,
       }),
     };
 
     // Setup mock returns
-    mockCreatePublicClient.mockReturnValue(mockPublicClient);
-    mockCreateWalletClient.mockReturnValue(mockWalletClient);
+    mockCreatePublicClient.mockReturnValue(mockPublicClient as PublicClient);
+    mockCreateWalletClient.mockReturnValue(mockWalletClient as WalletClient);
     mockCreateTransactionTracker.mockReturnValue(mockTransactionTracker);
 
     // Mock network validation
@@ -124,22 +130,7 @@ describe("addComposeHash", () => {
     // Mock executeTransactionWithRetry
     mockExecuteTransactionWithRetry.mockResolvedValue({
       hash: "0x123...abc" as `0x${string}`,
-      receipt: {
-        transactionHash: "0x123...abc" as `0x${string}`,
-        blockNumber: BigInt(1234567),
-        gasUsed: BigInt(21000),
-        logs: [],
-        status: "success",
-        blockHash: "0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd" as `0x${string}`,
-        contractAddress: null,
-        cumulativeGasUsed: BigInt(21000),
-        effectiveGasPrice: BigInt(1000000000),
-        from: "0xabcdef1234567890abcdef1234567890abcdef12" as `0x${string}`,
-        logsBloom: "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`,
-        to: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
-        transactionIndex: 0,
-        type: "eip1559" as const,
-      },
+      receipt: mockReceipt,
       success: true,
     });
 
@@ -166,22 +157,7 @@ describe("addComposeHash", () => {
         await operation(clients);
         return {
           hash: "0x123...abc" as `0x${string}`,
-          receipt: {
-            transactionHash: "0x123...abc" as `0x${string}`,
-            blockNumber: BigInt(1234567),
-            gasUsed: BigInt(21000),
-            logs: [],
-            status: "success",
-            blockHash: "0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd" as `0x${string}`,
-            contractAddress: null,
-            cumulativeGasUsed: BigInt(21000),
-            effectiveGasPrice: BigInt(1000000000),
-            from: "0xabcdef1234567890abcdef1234567890abcdef12" as `0x${string}`,
-            logsBloom: "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`,
-            to: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
-            transactionIndex: 0,
-            type: "eip1559" as const,
-          },
+          receipt: mockReceipt,
           success: true,
         };
       });
@@ -212,6 +188,61 @@ describe("addComposeHash", () => {
         account: expect.any(Object),
         chain: base,
       });
+    });
+
+    it("should handle custom timeout", async () => {
+      const request = {
+        ...validRequest,
+        timeout: 180000, // 3 minutes
+      };
+
+      await addComposeHash(request);
+
+      expect(mockTransactionTracker.execute).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.any(Object),
+        [],
+        expect.objectContaining({
+          timeout: 180000,
+        }),
+      );
+    });
+
+    it("should handle abort signal", async () => {
+      const abortController = new AbortController();
+      const request = {
+        ...validRequest,
+        signal: abortController.signal,
+      };
+
+      // Mock transaction tracker to simulate abort
+      mockTransactionTracker.execute.mockImplementation(async () => {
+        abortController.abort();
+        throw new Error("AbortError");
+      });
+
+      await expect(addComposeHash(request)).rejects.toThrow("AbortError");
+    });
+
+    it("should handle minBalance parameter", async () => {
+      const request = {
+        ...validRequest,
+        minBalance: "0.5", // Require 0.5 ETH
+      };
+
+      // Mock balance check to fail
+      mockValidateNetworkPrerequisites.mockResolvedValueOnce({
+        networkValid: true,
+        balanceValid: false,
+        addressValid: true,
+        details: {
+          currentChainId: base.id,
+          balance: parseEther("0.1"), // Only 0.1 ETH
+          address: "0xabcdef1234567890abcdef1234567890abcdef12" as `0x${string}`,
+        },
+      });
+
+      await expect(addComposeHash(request)).rejects.toThrow("Insufficient balance");
     });
 
     it("should use custom schema when provided", async () => {
@@ -255,7 +286,7 @@ describe("addComposeHash", () => {
       const walletRequest = {
         ...validRequest,
         privateKey: undefined,
-        walletClient: mockWalletClient,
+        walletClient: mockWalletClient as WalletClient,
       };
 
       const result = await addComposeHash(walletRequest);
@@ -274,8 +305,8 @@ describe("addComposeHash", () => {
       const clientsRequest = {
         ...validRequest,
         privateKey: undefined,
-        walletClient: mockWalletClient,
-        publicClient: mockPublicClient,
+        walletClient: mockWalletClient as WalletClient,
+        publicClient: mockPublicClient as PublicClient,
         chain: undefined, // Chain is optional when both clients provided
       };
 
@@ -299,7 +330,7 @@ describe("addComposeHash", () => {
 
     it("should throw when wallet client throws error", async () => {
       // Mock the wallet client to throw an error during contract write
-      mockWalletClient.writeContract.mockRejectedValue(
+      mockWalletClient.writeContract?.mockRejectedValue(
         new Error("Insufficient funds for transaction")
       );
 
@@ -421,7 +452,7 @@ describe("addComposeHash", () => {
         privateKey: undefined,
       };
 
-      await expect(addComposeHash(invalidRequest as any)).rejects.toThrow(
+      await expect(addComposeHash(invalidRequest)).rejects.toThrow(
         "Either 'privateKey' or 'walletClient' must be provided",
       );
     });
@@ -429,7 +460,7 @@ describe("addComposeHash", () => {
     it("should reject both privateKey and walletClient", async () => {
       const invalidRequest = {
         ...validRequest,
-        walletClient: mockWalletClient,
+        walletClient: mockWalletClient as WalletClient,
       };
 
       await expect(addComposeHash(invalidRequest)).rejects.toThrow(
@@ -485,7 +516,7 @@ describe("addComposeHash", () => {
         privateKey: undefined,
       };
 
-      const result = await safeAddComposeHash(invalidRequest as any);
+      const result = await safeAddComposeHash(invalidRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -543,27 +574,16 @@ describe("addComposeHash", () => {
   describe("Schema Flexibility", () => {
     it("should allow extra fields in transaction receipt for forward compatibility", async () => {
       // Mock receipt with extra fields
+      const receiptWithExtra = {
+        ...mockReceipt,
+        // Extra fields that might be added in future versions
+        extraField1: "future-value",
+        extraField2: { nested: "data" },
+      };
+
       mockTransactionTracker.execute.mockResolvedValue({
         hash: "0x123...abc" as `0x${string}`,
-        receipt: {
-          transactionHash: "0x123...abc" as `0x${string}`,
-          blockNumber: BigInt(1234567),
-          gasUsed: BigInt(21000),
-          logs: [],
-          status: "success",
-          blockHash: "0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd" as `0x${string}`,
-          contractAddress: null,
-          cumulativeGasUsed: BigInt(21000),
-          effectiveGasPrice: BigInt(1000000000),
-          from: "0xabcdef1234567890abcdef1234567890abcdef12" as `0x${string}`,
-          logsBloom: "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`,
-          to: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
-          transactionIndex: 0,
-          type: "eip1559" as const,
-          // Extra fields that might be added in future versions
-          extraField1: "future-value",
-          extraField2: { nested: "data" },
-        } as any, // Cast to any to allow extra fields
+        receipt: receiptWithExtra,
         success: true,
       });
 

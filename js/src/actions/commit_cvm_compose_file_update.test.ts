@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import { Client } from "../client";
+import { type Client, type SafeResult } from "../client";
 import {
   commitCvmComposeFileUpdate,
   safeCommitCvmComposeFileUpdate,
@@ -9,17 +9,19 @@ import {
 } from "./commit_cvm_compose_file_update";
 
 describe("commitCvmComposeFileUpdate", () => {
-  let mockClient: Client;
+  let mockClient: Partial<Client>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     
     mockClient = {
+      patch: vi.fn(),
       safePatch: vi.fn(),
-    } as unknown as Client;
+    };
   });
 
   const mockCommitRequest = {
+    id: "cvm-123",
     compose_hash: "abc123def456",
     encrypted_env: "deadbeef1234567890abcdef1234567890abcdef",
     env_keys: ["API_KEY", "DATABASE_URL"],
@@ -29,34 +31,87 @@ describe("commitCvmComposeFileUpdate", () => {
   const mockCommitResponse = undefined;
 
   describe("Standard version", () => {
-    it("should commit compose file update successfully", async () => {
-      (mockClient.safePatch as any).mockResolvedValue({
-        success: true,
-        data: mockCommitResponse,
-      });
+    it("should commit compose file update successfully with id", async () => {
+      (mockClient.patch as jest.Mock).mockResolvedValue(mockCommitResponse);
 
-      const result = await commitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
-      });
+      const result = await commitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest);
 
-      expect(mockClient.safePatch).toHaveBeenCalledWith("/cvms/cvm-123/compose_file", mockCommitRequest);
+      expect(mockClient.patch).toHaveBeenCalledWith("/cvms/cvm-123/compose_file", {
+        compose_hash: mockCommitRequest.compose_hash,
+        encrypted_env: mockCommitRequest.encrypted_env,
+        env_keys: mockCommitRequest.env_keys,
+      });
       expect(result).toBeUndefined(); // void response
     });
 
+    it("should commit compose file update successfully with uuid", async () => {
+      const uuidRequest = {
+        uuid: "123e4567-e89b-42d3-a456-556642440000",
+        compose_hash: mockCommitRequest.compose_hash,
+        encrypted_env: mockCommitRequest.encrypted_env,
+        env_keys: mockCommitRequest.env_keys,
+      };
+
+      (mockClient.patch as jest.Mock).mockResolvedValue(mockCommitResponse);
+
+      const result = await commitCvmComposeFileUpdate(mockClient as Client, uuidRequest);
+
+      expect(mockClient.patch).toHaveBeenCalledWith("/cvms/123e4567-e89b-42d3-a456-556642440000/compose_file", {
+        compose_hash: uuidRequest.compose_hash,
+        encrypted_env: uuidRequest.encrypted_env,
+        env_keys: uuidRequest.env_keys,
+      });
+      expect(result).toBeUndefined();
+    });
+
+    it("should commit compose file update successfully with appId", async () => {
+      const appId = "1234567890abcdef1234567890abcdef12345678";
+      const request = {
+        app_id: appId,
+        compose_hash: mockCommitRequest.compose_hash,
+        encrypted_env: mockCommitRequest.encrypted_env,
+        env_keys: mockCommitRequest.env_keys,
+      };
+
+      (mockClient.patch as jest.Mock).mockResolvedValue(mockCommitResponse);
+
+      const result = await commitCvmComposeFileUpdate(mockClient as Client, request);
+
+      expect(mockClient.patch).toHaveBeenCalledWith(`/cvms/app_${appId}/compose_file`, {
+        compose_hash: request.compose_hash,
+        encrypted_env: request.encrypted_env,
+        env_keys: request.env_keys,
+      });
+      expect(result).toBeUndefined();
+    });
+
+    it("should commit compose file update successfully with instanceId", async () => {
+      const instanceId = "1234567890abcdef1234567890abcdef12345678";
+      const instanceIdRequest = {
+        instance_id: instanceId,
+        compose_hash: mockCommitRequest.compose_hash,
+        encrypted_env: mockCommitRequest.encrypted_env,
+        env_keys: mockCommitRequest.env_keys,
+      };
+
+      (mockClient.patch as jest.Mock).mockResolvedValue(mockCommitResponse);
+
+      const result = await commitCvmComposeFileUpdate(mockClient as Client, instanceIdRequest);
+
+      expect(mockClient.patch).toHaveBeenCalledWith(`/cvms/instance_${instanceId}/compose_file`, {
+        compose_hash: instanceIdRequest.compose_hash,
+        encrypted_env: instanceIdRequest.encrypted_env,
+        env_keys: instanceIdRequest.env_keys,
+      });
+      expect(result).toBeUndefined();
+    });
+
     it("should validate response data with Zod schema", async () => {
-      const invalidResponse = { unexpected: "data" };
-      (mockClient.safePatch as any).mockResolvedValue({
-        success: true,
-        data: invalidResponse,
-      });
+      const invalidResponse = { invalid: "data" };
+      (mockClient.patch as jest.Mock).mockResolvedValue(invalidResponse);
 
-      // Void schema should handle any response gracefully
-      const result = await commitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
-      });
-
+      // Should not throw because response is transformed to undefined by default schema
+      const result = await commitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest);
       expect(result).toBeUndefined();
     });
 
@@ -67,27 +122,16 @@ describe("commitCvmComposeFileUpdate", () => {
         status: 400,
         detail: "Compose file not found",
       };
-      (mockClient.safePatch as any).mockResolvedValue({
-        success: false,
-        error,
-      });
+      (mockClient.patch as jest.Mock).mockRejectedValue(error);
 
-      await expect(commitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
-      })).rejects.toEqual(error);
+      await expect(commitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest)).rejects.toEqual(error);
     });
 
     it("should return raw data when schema is false", async () => {
       const rawData = { some: "raw", data: 123 };
-      (mockClient.safePatch as any).mockResolvedValue({
-        success: true,
-        data: rawData,
-      });
+      (mockClient.patch as jest.Mock).mockResolvedValue(rawData);
 
-      const result = await commitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
+      const result = await commitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest, {
         schema: false,
       });
 
@@ -96,15 +140,10 @@ describe("commitCvmComposeFileUpdate", () => {
 
     it("should use custom schema when provided", async () => {
       const customSchema = z.object({ status: z.string() });
-      const customData = { status: "accepted" };
-      (mockClient.safePatch as any).mockResolvedValue({
-        success: true,
-        data: customData,
-      });
+      const customData = { status: "success" };
+      (mockClient.patch as jest.Mock).mockResolvedValue(customData);
 
-      const result = await commitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
+      const result = await commitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest, {
         schema: customSchema,
       });
 
@@ -113,46 +152,39 @@ describe("commitCvmComposeFileUpdate", () => {
 
     it("should throw when custom schema validation fails", async () => {
       const customSchema = z.object({ required_field: z.string() });
-      (mockClient.safePatch as any).mockResolvedValue({
-        success: true,
-        data: { wrong_field: "value" },
-      });
+      (mockClient.patch as jest.Mock).mockResolvedValue({ wrong_field: "value" });
 
-      await expect(commitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
+      await expect(commitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest, {
         schema: customSchema,
       })).rejects.toThrow();
     });
 
-    it("should throw when cvm_id is missing", async () => {
-      await expect(commitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "",
-        request: mockCommitRequest,
-      })).rejects.toThrow("CVM ID is required");
+    it("should throw when no identifier is provided", async () => {
+      const invalidRequest = {
+        compose_hash: mockCommitRequest.compose_hash,
+      };
+
+      await expect(commitCvmComposeFileUpdate(mockClient as Client, invalidRequest)).rejects.toThrow();
     });
 
     it("should throw when compose_hash is missing", async () => {
-      const invalidRequest = { ...mockCommitRequest, compose_hash: "" };
+      const invalidRequest = { 
+        id: "cvm-123", 
+        compose_hash: "" 
+      };
       
-      await expect(commitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: invalidRequest,
-      })).rejects.toThrow("Compose hash is required");
+      await expect(commitCvmComposeFileUpdate(mockClient as Client, invalidRequest)).rejects.toThrow();
     });
   });
 
   describe("Safe version", () => {
     it("should return success result when API call succeeds", async () => {
-      (mockClient.safePatch as any).mockResolvedValue({
+      (mockClient.safePatch as jest.Mock).mockResolvedValue({
         success: true,
         data: mockCommitResponse,
       });
 
-      const result = await safeCommitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
-      });
+      const result = await safeCommitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -167,15 +199,12 @@ describe("commitCvmComposeFileUpdate", () => {
         status: 500,
         detail: "Internal server error",
       };
-      (mockClient.safePatch as any).mockResolvedValue({
+      (mockClient.safePatch as jest.Mock).mockResolvedValue({
         success: false,
         error,
       });
 
-      const result = await safeCommitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
-      });
+      const result = await safeCommitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -184,21 +213,16 @@ describe("commitCvmComposeFileUpdate", () => {
     });
 
     it("should handle Zod validation errors", async () => {
-      const customSchema = z.object({ required: z.string() });
-      (mockClient.safePatch as any).mockResolvedValue({
+      (mockClient.safePatch as jest.Mock).mockResolvedValue({
         success: true,
         data: { invalid: "data" },
       });
 
-      const result = await safeCommitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
-        schema: customSchema,
-      });
+      const result = await safeCommitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest);
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect("issues" in result.error).toBe(true);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toBeUndefined(); // Default schema transforms to undefined
       }
     });
 
@@ -209,15 +233,12 @@ describe("commitCvmComposeFileUpdate", () => {
         status: 401,
         detail: "Invalid API key",
       };
-      (mockClient.safePatch as any).mockResolvedValue({
+      (mockClient.safePatch as jest.Mock).mockResolvedValue({
         success: false,
         error: httpError,
       });
 
-      const result = await safeCommitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
-      });
+      const result = await safeCommitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -227,14 +248,12 @@ describe("commitCvmComposeFileUpdate", () => {
 
     it("should return raw data when schema is false", async () => {
       const rawData = { custom: "response" };
-      (mockClient.safePatch as any).mockResolvedValue({
+      (mockClient.safePatch as jest.Mock).mockResolvedValue({
         success: true,
         data: rawData,
       });
 
-      const result = await safeCommitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
+      const result = await safeCommitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest, {
         schema: false,
       });
 
@@ -247,14 +266,12 @@ describe("commitCvmComposeFileUpdate", () => {
     it("should use custom schema when provided", async () => {
       const customSchema = z.object({ custom_field: z.string() });
       const customData = { custom_field: "value" };
-      (mockClient.safePatch as any).mockResolvedValue({
+      (mockClient.safePatch as jest.Mock).mockResolvedValue({
         success: true,
         data: customData,
       });
 
-      const result = await safeCommitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
+      const result = await safeCommitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest, {
         schema: customSchema,
       });
 
@@ -266,14 +283,12 @@ describe("commitCvmComposeFileUpdate", () => {
 
     it("should return validation error when custom schema fails", async () => {
       const customSchema = z.object({ required_field: z.string() });
-      (mockClient.safePatch as any).mockResolvedValue({
+      (mockClient.safePatch as jest.Mock).mockResolvedValue({
         success: true,
         data: { wrong_field: "value" },
       });
 
-      const result = await safeCommitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
+      const result = await safeCommitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest, {
         schema: customSchema,
       });
 
@@ -283,66 +298,58 @@ describe("commitCvmComposeFileUpdate", () => {
       }
     });
 
-    it("should return error when cvm_id is missing", async () => {
-      const result = await safeCommitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "",
-        request: mockCommitRequest,
-      });
+    it("should return error when no identifier is provided", async () => {
+      const invalidRequest = {
+        compose_hash: mockCommitRequest.compose_hash,
+      };
+      
+      const result = await safeCommitCvmComposeFileUpdate(mockClient as Client, invalidRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect("isRequestError" in result.error).toBe(true);
-        expect(result.error.message).toBe("CVM ID is required");
-        if ("isRequestError" in result.error && result.error.isRequestError) {
-          expect(result.error.status).toBe(400);
-        }
+        expect("issues" in result.error).toBe(true);
       }
     });
 
     it("should return error when compose_hash is missing", async () => {
-      const invalidRequest = { ...mockCommitRequest, compose_hash: "" };
+      const invalidRequest = { 
+        id: "cvm-123", 
+        compose_hash: "" 
+      };
       
-      const result = await safeCommitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: invalidRequest,
-      });
+      const result = await safeCommitCvmComposeFileUpdate(mockClient as Client, invalidRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect("isRequestError" in result.error).toBe(true);
-        expect(result.error.message).toBe("Compose hash is required");
-        if ("isRequestError" in result.error && result.error.isRequestError) {
-          expect(result.error.status).toBe(400);
-        }
+        expect("issues" in result.error).toBe(true);
       }
     });
   });
 
   describe("Parameter handling", () => {
-    it("should work with cvm_id and request parameters", async () => {
-      (mockClient.safePatch as any).mockResolvedValue({
-        success: true,
-        data: mockCommitResponse,
+    it("should work with minimal parameters", async () => {
+      (mockClient.patch as jest.Mock).mockResolvedValue(mockCommitResponse);
+
+      const result = await commitCvmComposeFileUpdate(mockClient as Client, {
+        id: mockCommitRequest.id,
+        compose_hash: mockCommitRequest.compose_hash,
       });
 
-      const result = await commitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
+      expect(mockClient.patch).toHaveBeenCalledWith("/cvms/cvm-123/compose_file", {
+        compose_hash: mockCommitRequest.compose_hash,
       });
-
-      expect(mockClient.safePatch).toHaveBeenCalledWith("/cvms/cvm-123/compose_file", mockCommitRequest);
       expect(result).toBeUndefined();
     });
 
-    it("should work with safe version with parameters", async () => {
-      (mockClient.safePatch as any).mockResolvedValue({
+    it("should work with safe version with minimal parameters", async () => {
+      (mockClient.safePatch as jest.Mock).mockResolvedValue({
         success: true,
         data: mockCommitResponse,
       });
 
-      const result = await safeCommitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
+      const result = await safeCommitCvmComposeFileUpdate(mockClient as Client, {
+        id: mockCommitRequest.id,
+        compose_hash: mockCommitRequest.compose_hash,
       });
 
       expect(result.success).toBe(true);
@@ -358,16 +365,10 @@ describe("commitCvmComposeFileUpdate", () => {
         extra_field: "extra_value",
         future_feature: { nested: "data" },
       };
-      (mockClient.safePatch as any).mockResolvedValue({
-        success: true,
-        data: responseWithExtraFields,
-      });
+      (mockClient.patch as jest.Mock).mockResolvedValue(responseWithExtraFields);
 
-      // Void schema should handle any response gracefully
-      const result = await commitCvmComposeFileUpdate(mockClient, {
-        cvm_id: "cvm-123",
-        request: mockCommitRequest,
-      });
+      // Default schema transforms any response to undefined
+      const result = await commitCvmComposeFileUpdate(mockClient as Client, mockCommitRequest);
 
       expect(result).toBeUndefined();
     });
@@ -376,8 +377,7 @@ describe("commitCvmComposeFileUpdate", () => {
   describe("Type inference", () => {
     it("should infer correct types for default schema", () => {
       type T = Awaited<ReturnType<typeof commitCvmComposeFileUpdate>>;
-      // @ts-expect-error
-      const isExpected: T extends CommitCvmComposeFileUpdate ? true : false = true;
+      const isExpected: T extends undefined ? true : false = true;
       expect(isExpected).toBe(true);
     });
 

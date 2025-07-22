@@ -73,6 +73,7 @@ const mockCvmInfoData: CvmInfo = {
 describe("getCvmInfo", () => {
   let client: ReturnType<typeof createClient>;
   let mockSafeGet: any;
+  let mockGet: any;
 
   beforeEach(() => {
     client = createClient({
@@ -80,32 +81,73 @@ describe("getCvmInfo", () => {
       baseURL: "https://api.test.com",
     });
     mockSafeGet = vi.spyOn(client, "safeGet");
+    mockGet = vi.spyOn(client, "get");
   });
 
   describe("getCvmInfo", () => {
-    it("should return CVM info data successfully", async () => {
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: mockCvmInfoData,
-      });
+    it("should return CVM info data successfully with id", async () => {
+      mockGet.mockResolvedValue(mockCvmInfoData);
 
-      const result = await getCvmInfo(client, "test-cvm-id");
+      const result = await getCvmInfo(client, { id: "test-cvm-id" });
 
-      expect(mockSafeGet).toHaveBeenCalledWith("/cvms/test-cvm-id");
+      expect(mockGet).toHaveBeenCalledWith("/cvms/test-cvm-id");
       expect(result).toEqual(mockCvmInfoData);
       expect((result as CvmInfo).name).toBe("test-cvm");
       expect((result as CvmInfo).status).toBe("running");
     });
 
-    it("should handle different CVM IDs correctly", async () => {
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: mockCvmInfoData,
-      });
+    it("should return CVM info data successfully with uuid", async () => {
+      mockGet.mockResolvedValue(mockCvmInfoData);
 
-      await getCvmInfo(client, "another-cvm-id");
+      const result = await getCvmInfo(client, { uuid: "123e4567-e89b-42d3-a456-556642440000" });
 
-      expect(mockSafeGet).toHaveBeenCalledWith("/cvms/another-cvm-id");
+      expect(mockGet).toHaveBeenCalledWith("/cvms/123e4567-e89b-42d3-a456-556642440000");
+      expect(result).toEqual(mockCvmInfoData);
+    });
+
+    it("should return CVM info data successfully with appId", async () => {
+      mockGet.mockResolvedValue(mockCvmInfoData);
+
+      const app_id = "a".repeat(40);
+      const result = await getCvmInfo(client, { app_id });
+
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/app_${app_id}`);
+      expect(result).toEqual(mockCvmInfoData);
+    });
+
+    it("should return CVM info data successfully with instanceId", async () => {
+      mockGet.mockResolvedValue(mockCvmInfoData);
+
+      const instance_id = "b".repeat(40);
+      const result = await getCvmInfo(client, { instance_id });
+
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/instance_${instance_id}`);
+      expect(result).toEqual(mockCvmInfoData);
+    });
+
+    it("should validate request parameters", async () => {
+      // No identifier provided
+      await expect(getCvmInfo(client, {})).rejects.toThrow("One of id, uuid, app_id, or instance_id must be provided");
+
+      // Invalid UUID format
+      await expect(getCvmInfo(client, { uuid: "invalid-uuid" })).rejects.toThrow();
+
+      // Invalid appId length
+      await expect(getCvmInfo(client, { app_id: "short" })).rejects.toThrow("app_id should be 40 characters without prefix");
+
+      // Invalid instanceId length
+      await expect(getCvmInfo(client, { instance_id: "short" })).rejects.toThrow("instance_id should be 40 characters without prefix");
+
+      // appId without prefix (should be transformed to add prefix)  
+      mockGet.mockResolvedValue(mockCvmInfoData);
+      const app_id = "a".repeat(40);
+      await getCvmInfo(client, { app_id });
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/app_${app_id}`);
+
+      // instanceId without prefix (should be transformed to add prefix)
+      const instance_id = "b".repeat(40);
+      await getCvmInfo(client, { instance_id });
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/instance_${instance_id}`);
     });
 
     it("should validate response data with zod schema", async () => {
@@ -114,32 +156,23 @@ describe("getCvmInfo", () => {
         status: null, // should be string
       };
 
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: invalidData,
-      });
+      mockGet.mockResolvedValue(invalidData);
 
-      await expect(getCvmInfo(client, "test-cvm-id")).rejects.toThrow();
+      await expect(getCvmInfo(client, { id: "test-cvm-id" })).rejects.toThrow();
     });
 
     it("should handle API errors properly", async () => {
       const apiError = new Error("CVM not found");
-      mockSafeGet.mockResolvedValue({
-        success: false,
-        error: apiError,
-      });
+      mockGet.mockRejectedValue(apiError);
 
-      await expect(getCvmInfo(client, "nonexistent-cvm")).rejects.toThrow("CVM not found");
+      await expect(getCvmInfo(client, { id: "nonexistent-cvm" })).rejects.toThrow("CVM not found");
     });
 
     it("should return raw data when schema is false", async () => {
       const rawData = { some: "raw", data: 123 };
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: rawData,
-      });
+      mockGet.mockResolvedValue(rawData);
 
-      const result = await getCvmInfo(client, "test-cvm-id", { schema: false });
+      const result = await getCvmInfo(client, { id: "test-cvm-id" }, { schema: false });
 
       expect(result).toEqual(rawData);
     });
@@ -151,12 +184,9 @@ describe("getCvmInfo", () => {
       });
       const customData = { id: "test-id", custom: "test" };
 
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: customData,
-      });
+      mockGet.mockResolvedValue(customData);
 
-      const result = await getCvmInfo(client, "test-cvm-id", { schema: customSchema });
+      const result = await getCvmInfo(client, { id: "test-cvm-id" }, { schema: customSchema });
 
       expect(result).toEqual(customData);
     });
@@ -168,12 +198,9 @@ describe("getCvmInfo", () => {
       });
       const invalidData = { id: 123, custom: "test" };
 
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: invalidData,
-      });
+      mockGet.mockResolvedValue(invalidData);
 
-      await expect(getCvmInfo(client, "test-cvm-id", { schema: customSchema })).rejects.toThrow();
+      await expect(getCvmInfo(client, { id: "test-cvm-id" }, { schema: customSchema })).rejects.toThrow();
     });
 
     it("should handle partial CVM data correctly", async () => {
@@ -183,12 +210,9 @@ describe("getCvmInfo", () => {
         listed: false,
       };
 
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: partialData,
-      });
+      mockGet.mockResolvedValue(partialData);
 
-      const result = await getCvmInfo(client, "test-cvm-id");
+      const result = await getCvmInfo(client, { id: "test-cvm-id" });
 
       expect(result).toEqual(partialData);
       expect((result as CvmInfo).name).toBe("minimal-cvm");
@@ -202,7 +226,7 @@ describe("getCvmInfo", () => {
         data: mockCvmInfoData,
       });
 
-      const result = await safeGetCvmInfo(client, "test-cvm-id");
+      const result = await safeGetCvmInfo(client, { id: "test-cvm-id" });
 
       expect(mockSafeGet).toHaveBeenCalledWith("/cvms/test-cvm-id");
       expect(result.success).toBe(true);
@@ -226,7 +250,7 @@ describe("getCvmInfo", () => {
 
       mockSafeGet.mockResolvedValue(apiError);
 
-      const result = await safeGetCvmInfo(client, "nonexistent-cvm");
+      const result = await safeGetCvmInfo(client, { id: "nonexistent-cvm" });
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -249,7 +273,7 @@ describe("getCvmInfo", () => {
         data: invalidData,
       });
 
-      const result = await safeGetCvmInfo(client, "test-cvm-id");
+      const result = await safeGetCvmInfo(client, { id: "test-cvm-id" });
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -269,7 +293,7 @@ describe("getCvmInfo", () => {
         },
       });
 
-      const result = await safeGetCvmInfo(client, "test-cvm-id");
+      const result = await safeGetCvmInfo(client, { id: "test-cvm-id" });
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -285,7 +309,7 @@ describe("getCvmInfo", () => {
         data: mockCvmInfoData,
       });
 
-      const result = await safeGetCvmInfo(client, "test-cvm-id", { schema: false });
+      const result = await safeGetCvmInfo(client, { id: "test-cvm-id" }, { schema: false });
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -305,7 +329,7 @@ describe("getCvmInfo", () => {
         data: customData,
       });
 
-      const result = await safeGetCvmInfo(client, "test-cvm-id", { schema: customSchema });
+      const result = await safeGetCvmInfo(client, { id: "test-cvm-id" }, { schema: customSchema });
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -325,7 +349,7 @@ describe("getCvmInfo", () => {
         data: invalidData,
       });
 
-      const result = await safeGetCvmInfo(client, "test-cvm-id", { schema: customSchema });
+      const result = await safeGetCvmInfo(client, { id: "test-cvm-id" }, { schema: customSchema });
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -341,34 +365,55 @@ describe("getCvmInfo", () => {
         data: mockCvmInfoData,
       });
 
-      await safeGetCvmInfo(client, "special-cvm-123");
+      await safeGetCvmInfo(client, { id: "special-cvm-123" });
 
       expect(mockSafeGet).toHaveBeenCalledWith("/cvms/special-cvm-123");
+    });
+
+    it("should handle request validation errors in safe version", async () => {
+      const result = await safeGetCvmInfo(client, {});
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        // @ts-expect-error: issues is not defined on RequestError
+        expect(result.error.issues).toBeDefined();
+      }
     });
   });
 
   describe("edge cases", () => {
     it("should handle empty string CVM ID", async () => {
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: mockCvmInfoData,
-      });
-
-      await getCvmInfo(client, "");
-
-      expect(mockSafeGet).toHaveBeenCalledWith("/cvms/");
+      const result = await safeGetCvmInfo(client, { id: "" });
+      expect(result.success).toBe(false);
     });
 
     it("should handle CVM ID with special characters", async () => {
       const specialId = "cvm-123-test_special.id";
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: mockCvmInfoData,
-      });
+      mockGet.mockResolvedValue(mockCvmInfoData);
 
-      await getCvmInfo(client, specialId);
+      await getCvmInfo(client, { id: specialId });
 
-      expect(mockSafeGet).toHaveBeenCalledWith(`/cvms/${specialId}`);
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/${specialId}`);
+    });
+
+    it("should handle multiple identifiers", async () => {
+      mockGet.mockResolvedValue(mockCvmInfoData);
+
+      // When multiple identifiers are provided, it should use them in order: id > uuid > appId > instanceId
+      const uuid = "123e4567-e89b-42d3-a456-556642440000";
+      const app_id = "a".repeat(40);
+      const instance_id = "b".repeat(40);
+
+      await getCvmInfo(client, { id: "test-id", uuid, app_id, instance_id });
+      expect(mockGet).toHaveBeenCalledWith("/cvms/test-id");
+
+      await getCvmInfo(client, { uuid, app_id, instance_id });
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/${uuid}`);
+
+      await getCvmInfo(client, { app_id, instance_id });
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/app_${app_id}`);
+
+      await getCvmInfo(client, { instance_id });
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/instance_${instance_id}`);
     });
   });
 }); 

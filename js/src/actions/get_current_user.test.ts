@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import { createClient } from "../client";
-import { getCurrentUser, safeGetCurrentUser, type CurrentUser } from "./get_current_user";
+import { type Client, type SafeResult } from "../client";
+import { getCurrentUser, safeGetCurrentUser, type CurrentUser, type GetCurrentUserParameters } from "./get_current_user";
 
 // Mock response data matching the API structure
 const mockUserData: CurrentUser = {
@@ -15,27 +15,25 @@ const mockUserData: CurrentUser = {
 };
 
 describe("getCurrentUser", () => {
-  let client: ReturnType<typeof createClient>;
-  let mockGet: any;
-  let mockSafeGet: any;
+  let mockClient: Partial<Client>;
 
   beforeEach(() => {
-    client = createClient({
-      apiKey: "test-api-key",
-      baseURL: "https://api.test.com",
-    });
-    mockGet = vi.spyOn(client, "get");
-    mockSafeGet = vi.spyOn(client, "safeGet");
+    vi.clearAllMocks();
+    
+    mockClient = {
+      get: vi.fn(),
+      safeGet: vi.fn(),
+    };
   });
 
   describe("getCurrentUser", () => {
     it("should return current user data successfully", async () => {
       // Mock the client.get method
-      const mockGet = vi.spyOn(client, "get").mockResolvedValue(mockUserData);
+      (mockClient.get as jest.Mock).mockResolvedValue(mockUserData);
 
-      const result = await getCurrentUser(client);
+      const result = await getCurrentUser(mockClient as Client);
 
-      expect(mockGet).toHaveBeenCalledWith("/auth/me");
+      expect(mockClient.get).toHaveBeenCalledWith("/auth/me");
       expect(result).toEqual(mockUserData);
       expect((result as CurrentUser).username).toBe("testuser");
       expect((result as CurrentUser).credits).toBe(1000);
@@ -49,23 +47,39 @@ describe("getCurrentUser", () => {
         // missing required fields
       };
 
-      vi.spyOn(client, "get").mockResolvedValue(invalidData);
+      (mockClient.get as jest.Mock).mockResolvedValue(invalidData);
 
-      await expect(getCurrentUser(client)).rejects.toThrow();
+      await expect(getCurrentUser(mockClient as Client)).rejects.toThrow();
     });
 
     it("should handle API errors properly", async () => {
       const apiError = new Error("API Error");
-      vi.spyOn(client, "get").mockRejectedValue(apiError);
+      (mockClient.get as jest.Mock).mockRejectedValue(apiError);
 
-      await expect(getCurrentUser(client)).rejects.toThrow("API Error");
+      await expect(getCurrentUser(mockClient as Client)).rejects.toThrow("API Error");
+    });
+
+    it("should handle timeout errors", async () => {
+      const timeoutError = new Error("Request timed out");
+      timeoutError.name = "TimeoutError";
+      (mockClient.get as jest.Mock).mockRejectedValue(timeoutError);
+
+      await expect(getCurrentUser(mockClient as Client)).rejects.toThrow("Request timed out");
+    });
+
+    it("should handle network errors", async () => {
+      const networkError = new Error("Network error");
+      networkError.name = "NetworkError";
+      (mockClient.get as jest.Mock).mockRejectedValue(networkError);
+
+      await expect(getCurrentUser(mockClient as Client)).rejects.toThrow("Network error");
     });
 
     it("should return raw data when schema is false", async () => {
       const rawData = { some: "raw", data: 123 };
-      vi.spyOn(client, "get").mockResolvedValue(rawData);
+      (mockClient.get as jest.Mock).mockResolvedValue(rawData);
 
-      const result = await getCurrentUser(client, { schema: false });
+      const result = await getCurrentUser(mockClient as Client, { schema: false });
 
       expect(result).toEqual(rawData);
     });
@@ -77,9 +91,9 @@ describe("getCurrentUser", () => {
       });
       const customData = { id: 1, name: "test" };
       
-      vi.spyOn(client, "get").mockResolvedValue(customData);
+      (mockClient.get as jest.Mock).mockResolvedValue(customData);
 
-      const result = await getCurrentUser(client, { schema: customSchema });
+      const result = await getCurrentUser(mockClient as Client, { schema: customSchema });
 
       expect(result).toEqual(customData);
     });
@@ -91,22 +105,22 @@ describe("getCurrentUser", () => {
       });
       const invalidData = { id: "invalid", name: 123 };
       
-      vi.spyOn(client, "get").mockResolvedValue(invalidData);
+      (mockClient.get as jest.Mock).mockResolvedValue(invalidData);
 
-      await expect(getCurrentUser(client, { schema: customSchema })).rejects.toThrow();
+      await expect(getCurrentUser(mockClient as Client, { schema: customSchema })).rejects.toThrow();
     });
   });
 
   describe("safeGetCurrentUser", () => {
     it("should return success result when API call succeeds", async () => {
-      vi.spyOn(client, "safeGet").mockResolvedValue({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: mockUserData,
       });
 
-      const result = await safeGetCurrentUser(client);
+      const result = await safeGetCurrentUser(mockClient as Client);
 
-      expect(client.safeGet).toHaveBeenCalledWith("/auth/me");
+      expect(mockClient.safeGet).toHaveBeenCalledWith("/auth/me");
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toEqual(mockUserData);
@@ -115,25 +129,77 @@ describe("getCurrentUser", () => {
     });
 
     it("should return error result when API call fails", async () => {
-      const apiError = {
+      const apiError: SafeResult<unknown> = {
         success: false,
         error: {
           name: "RequestError",
           message: "Network Error",
           detail: "Network Error",
           isRequestError: true,
+          status: 500,
         },
-      } as const;
+      };
 
-      vi.spyOn(client, "safeGet").mockResolvedValue(apiError);
+      (mockClient.safeGet as jest.Mock).mockResolvedValue(apiError);
 
-      const result = await safeGetCurrentUser(client);
+      const result = await safeGetCurrentUser(mockClient as Client);
 
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.message).toBe("Network Error");
         if ("isRequestError" in result.error) {
           expect(result.error.isRequestError).toBe(true);
+          expect(result.error.status).toBe(500);
+        }
+      }
+    });
+
+    it("should handle timeout errors", async () => {
+      const timeoutError: SafeResult<unknown> = {
+        success: false,
+        error: {
+          name: "TimeoutError",
+          message: "Request timed out",
+          detail: "Request timed out after 30000ms",
+          isRequestError: true,
+          status: 408,
+        },
+      };
+
+      (mockClient.safeGet as jest.Mock).mockResolvedValue(timeoutError);
+
+      const result = await safeGetCurrentUser(mockClient as Client);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toBe("Request timed out");
+        if ("isRequestError" in result.error) {
+          expect(result.error.status).toBe(408);
+        }
+      }
+    });
+
+    it("should handle network errors", async () => {
+      const networkError: SafeResult<unknown> = {
+        success: false,
+        error: {
+          name: "NetworkError",
+          message: "Network error",
+          detail: "Failed to fetch",
+          isRequestError: true,
+          status: 0,
+        },
+      };
+
+      (mockClient.safeGet as jest.Mock).mockResolvedValue(networkError);
+
+      const result = await safeGetCurrentUser(mockClient as Client);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toBe("Network error");
+        if ("isRequestError" in result.error) {
+          expect(result.error.status).toBe(0);
         }
       }
     });
@@ -144,12 +210,12 @@ describe("getCurrentUser", () => {
         email: "testuser@phala.network",
       };
 
-      vi.spyOn(client, "safeGet").mockResolvedValue({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: invalidData,
       });
 
-      const result = await safeGetCurrentUser(client);
+      const result = await safeGetCurrentUser(mockClient as Client);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -165,7 +231,7 @@ describe("getCurrentUser", () => {
     });
 
     it("should pass through HTTP errors directly", async () => {
-      const httpError = {
+      const httpError: SafeResult<unknown> = {
         success: false,
         error: {
           name: "RequestError",
@@ -174,11 +240,11 @@ describe("getCurrentUser", () => {
           status: 401,
           isRequestError: true,
         },
-      } as const;
+      };
 
-      vi.spyOn(client, "safeGet").mockResolvedValue(httpError);
+      (mockClient.safeGet as jest.Mock).mockResolvedValue(httpError);
 
-      const result = await safeGetCurrentUser(client);
+      const result = await safeGetCurrentUser(mockClient as Client);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -191,12 +257,12 @@ describe("getCurrentUser", () => {
 
     it("should return raw data when schema is false", async () => {
       const rawData = { some: "raw", data: 123 };
-      vi.spyOn(client, "safeGet").mockResolvedValue({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: rawData,
       });
 
-      const result = await safeGetCurrentUser(client, { schema: false });
+      const result = await safeGetCurrentUser(mockClient as Client, { schema: false });
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -211,12 +277,12 @@ describe("getCurrentUser", () => {
       });
       const customData = { id: 1, name: "test" };
       
-      vi.spyOn(client, "safeGet").mockResolvedValue({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: customData,
       });
 
-      const result = await safeGetCurrentUser(client, { schema: customSchema });
+      const result = await safeGetCurrentUser(mockClient as Client, { schema: customSchema });
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -231,12 +297,12 @@ describe("getCurrentUser", () => {
       });
       const invalidData = { id: "invalid", name: 123 };
       
-      vi.spyOn(client, "safeGet").mockResolvedValue({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: invalidData,
       });
 
-      const result = await safeGetCurrentUser(client, { schema: customSchema });
+      const result = await safeGetCurrentUser(mockClient as Client, { schema: customSchema });
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -250,26 +316,26 @@ describe("getCurrentUser", () => {
 
   describe("parameter handling", () => {
     it("should work without parameters", async () => {
-      vi.spyOn(client, "get").mockResolvedValue(mockUserData);
+      (mockClient.get as jest.Mock).mockResolvedValue(mockUserData);
 
-      const result = await getCurrentUser(client);
+      const result = await getCurrentUser(mockClient as Client);
       expect(result).toEqual(mockUserData);
     });
 
     it("should work with empty parameters object", async () => {
-      vi.spyOn(client, "get").mockResolvedValue(mockUserData);
+      (mockClient.get as jest.Mock).mockResolvedValue(mockUserData);
 
-      const result = await getCurrentUser(client, {});
+      const result = await getCurrentUser(mockClient as Client, {});
       expect(result).toEqual(mockUserData);
     });
 
     it("should work with safe version without parameters", async () => {
-      vi.spyOn(client, "safeGet").mockResolvedValue({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: mockUserData,
       });
 
-      const result = await safeGetCurrentUser(client);
+      const result = await safeGetCurrentUser(mockClient as Client);
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toEqual(mockUserData);
@@ -277,12 +343,12 @@ describe("getCurrentUser", () => {
     });
 
     it("should work with safe version with empty parameters object", async () => {
-      vi.spyOn(client, "safeGet").mockResolvedValue({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: mockUserData,
       });
 
-      const result = await safeGetCurrentUser(client, {});
+      const result = await safeGetCurrentUser(mockClient as Client, {});
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toEqual(mockUserData);
@@ -309,12 +375,12 @@ describe("getCurrentUser", () => {
         },
       };
 
-      vi.spyOn(client, "safeGet").mockResolvedValue({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: responseWithExtraFields,
       });
 
-      const result = await safeGetCurrentUser(client);
+      const result = await safeGetCurrentUser(mockClient as Client);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -335,9 +401,9 @@ describe("getCurrentUser", () => {
 
   describe("type inference", () => {
     it("should infer CurrentUser type when no schema provided", async () => {
-      mockGet.mockResolvedValueOnce(mockUserData);
+      (mockClient.get as jest.Mock).mockResolvedValue(mockUserData);
       
-      const result = await getCurrentUser(client);
+      const result = await getCurrentUser(mockClient as Client);
       
       // TypeScript should infer this as CurrentUser
       expect(result.username).toBe("testuser");
@@ -348,9 +414,9 @@ describe("getCurrentUser", () => {
 
     it("should infer unknown type when schema is false", async () => {
       const rawResponse = { id: 1, username: "testuser", custom_field: "extra" };
-      mockGet.mockResolvedValueOnce(rawResponse);
+      (mockClient.get as jest.Mock).mockResolvedValue(rawResponse);
       
-      const result = await getCurrentUser(client, { schema: false });
+      const result = await getCurrentUser(mockClient as Client, { schema: false });
       
       // TypeScript should infer this as unknown
       expect(result).toEqual(rawResponse);
@@ -359,24 +425,99 @@ describe("getCurrentUser", () => {
     it("should infer custom schema type when provided", async () => {
       const customSchema = z.object({ id: z.number(), name: z.string() });
       const customResponse = { id: 1, name: "Test User" };
-      mockGet.mockResolvedValueOnce(customResponse);
+      (mockClient.get as jest.Mock).mockResolvedValue(customResponse);
       
-      const result = await getCurrentUser(client, { schema: customSchema });
+      const result = await getCurrentUser(mockClient as Client, { schema: customSchema });
       
       // TypeScript should infer this as { id: number; name: string }
       expect(result.id).toBe(1);
       expect(result.name).toBe("Test User");
     });
+
+    it("should enforce parameter type safety", async () => {
+      (mockClient.get as jest.Mock).mockResolvedValue(mockUserData);
+      
+      // @ts-expect-error - schema should be ZodSchema | false | undefined
+      await expect(getCurrentUser(mockClient as Client, { schema: "invalid" })).rejects.toThrow("Invalid schema");
+      
+      // @ts-expect-error - unknown parameter
+      await getCurrentUser(mockClient as Client, { unknownParam: true });
+      
+      // Valid parameters should compile
+      const params: GetCurrentUserParameters = {};
+      await getCurrentUser(mockClient as Client, params);
+      
+      // Test with custom schema - use appropriate mock data
+      const customSchema = z.object({ id: z.number() });
+      const customMockData = { id: 123 };
+      (mockClient.get as jest.Mock).mockResolvedValueOnce(customMockData);
+      const paramsWithSchema: GetCurrentUserParameters<typeof customSchema> = { schema: customSchema };
+      await getCurrentUser(mockClient as Client, paramsWithSchema);
+    });
+  });
+
+  describe("schema behavior", () => {
+    it("should allow unknown fields through passthrough", async () => {
+      const dataWithExtra = {
+        ...mockUserData,
+        unknownField1: "value1",
+        unknownField2: 123,
+        unknownObject: {
+          nested: true,
+        },
+      };
+
+      (mockClient.get as jest.Mock).mockResolvedValue(dataWithExtra);
+
+      const result = await getCurrentUser(mockClient as Client);
+      
+      // Should have all required fields
+      expect(result.username).toBe(mockUserData.username);
+      expect(result.email).toBe(mockUserData.email);
+      
+      // Should preserve unknown fields
+      expect((result as any).unknownField1).toBe("value1");
+      expect((result as any).unknownField2).toBe(123);
+      expect((result as any).unknownObject).toEqual({ nested: true });
+    });
+
+    it("should handle null and undefined fields appropriately", async () => {
+      const dataWithNulls = {
+        ...mockUserData,
+        avatar: null, // Schema expects string
+        team_name: undefined, // Schema expects string
+      };
+
+      (mockClient.get as jest.Mock).mockResolvedValue(dataWithNulls);
+
+      // Should throw because required fields can't be null/undefined
+      await expect(getCurrentUser(mockClient as Client)).rejects.toThrow();
+    });
+  });
+
+  describe("parameter validation", () => {
+    it("should reject invalid parameter types at runtime", async () => {
+      (mockClient.get as jest.Mock).mockResolvedValue(mockUserData);
+
+      // @ts-expect-error - Testing runtime behavior with invalid type
+      await expect(getCurrentUser(mockClient as Client, { schema: 123 })).rejects.toThrow();
+      
+      // @ts-expect-error - Testing runtime behavior with invalid type
+      await expect(getCurrentUser(mockClient as Client, { schema: "invalid" })).rejects.toThrow();
+      
+      // @ts-expect-error - Testing runtime behavior with invalid type
+      await expect(getCurrentUser(mockClient as Client, { schema: {} })).rejects.toThrow();
+    });
   });
 
   describe("safe version type inference", () => {
     it("should infer SafeResult<CurrentUser> when no schema provided", async () => {
-      mockSafeGet.mockResolvedValueOnce({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: mockUserData,
       });
       
-      const result = await safeGetCurrentUser(client);
+      const result = await safeGetCurrentUser(mockClient as Client);
       
       if (result.success) {
         // TypeScript should infer result.data as CurrentUser
@@ -389,12 +530,12 @@ describe("getCurrentUser", () => {
 
     it("should infer SafeResult<unknown> when schema is false", async () => {
       const rawResponse = { id: 1, username: "testuser", custom_field: "extra" };
-      mockSafeGet.mockResolvedValueOnce({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: rawResponse,
       });
       
-      const result = await safeGetCurrentUser(client, { schema: false });
+      const result = await safeGetCurrentUser(mockClient as Client, { schema: false });
       
       if (result.success) {
         // TypeScript should infer result.data as unknown
@@ -405,12 +546,12 @@ describe("getCurrentUser", () => {
     it("should infer custom type when custom schema provided", async () => {
       const customSchema = z.object({ id: z.number(), name: z.string() });
       const customResponse = { id: 1, name: "Test User" };
-      mockSafeGet.mockResolvedValueOnce({
+      (mockClient.safeGet as jest.Mock).mockResolvedValue({
         success: true,
         data: customResponse,
       });
       
-      const result = await safeGetCurrentUser(client, { schema: customSchema });
+      const result = await safeGetCurrentUser(mockClient as Client, { schema: customSchema });
       
       if (result.success) {
         // TypeScript should infer result.data as { id: number; name: string }

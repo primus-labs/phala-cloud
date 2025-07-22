@@ -9,6 +9,7 @@ import {
   type GetAppEnvEncryptPubKey,
   type GetAppEnvEncryptPubKeyRequest,
 } from "./get_app_env_encrypt_pubkey";
+import type { Client } from "../client";
 
 // Mock response data matching the API structure
 const mockAppEnvEncryptPubKeyData: GetAppEnvEncryptPubKey = {
@@ -17,13 +18,14 @@ const mockAppEnvEncryptPubKeyData: GetAppEnvEncryptPubKey = {
 };
 
 const mockRequest: GetAppEnvEncryptPubKeyRequest = {
-  kmsId: "kms-123",
-  appId: "app-456",
+  kms: "kms-123",
+  app_id: "a".repeat(40), // Must be exactly 40 characters
 };
 
 describe("getAppEnvEncryptPubKey", () => {
-  let client: ReturnType<typeof createClient>;
+  let client: Client;
   let mockSafeGet: any;
+  let mockGet: any;
 
   beforeEach(() => {
     client = createClient({
@@ -31,56 +33,46 @@ describe("getAppEnvEncryptPubKey", () => {
       baseURL: "https://api.test.com",
     });
     mockSafeGet = vi.spyOn(client, "safeGet");
+    mockGet = vi.spyOn(client, "get");
   });
 
   describe("getAppEnvEncryptPubKey", () => {
     it("should return app env encrypt pubkey data successfully", async () => {
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: mockAppEnvEncryptPubKeyData,
-      });
+      mockGet.mockResolvedValue(mockAppEnvEncryptPubKeyData);
 
       const result = await getAppEnvEncryptPubKey(client, mockRequest);
 
-      expect(mockSafeGet).toHaveBeenCalledWith("/kms/kms-123/pubkey/app-456");
+      expect(mockGet).toHaveBeenCalledWith(`/kms/${mockRequest.kms}/pubkey/${mockRequest.app_id}`);
       expect(result).toEqual(mockAppEnvEncryptPubKeyData);
       expect((result as GetAppEnvEncryptPubKey).public_key).toBe(mockAppEnvEncryptPubKeyData.public_key);
       expect((result as GetAppEnvEncryptPubKey).signature).toBe(mockAppEnvEncryptPubKeyData.signature);
     });
 
     it("should handle different KMS and App IDs correctly", async () => {
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: mockAppEnvEncryptPubKeyData,
-      });
+      mockGet.mockResolvedValue(mockAppEnvEncryptPubKeyData);
 
       const differentRequest = {
-        kmsId: "another-kms",
-        appId: "another-app",
+        kms: "another-kms",
+        app_id: "b".repeat(40),
       };
 
       await getAppEnvEncryptPubKey(client, differentRequest);
 
-      expect(mockSafeGet).toHaveBeenCalledWith("/kms/another-kms/pubkey/another-app");
+      expect(mockGet).toHaveBeenCalledWith(`/kms/${differentRequest.kms}/pubkey/${differentRequest.app_id}`);
     });
 
     it("should validate request payload structure", async () => {
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: mockAppEnvEncryptPubKeyData,
-      });
+      // Test empty KMS
+      await expect(getAppEnvEncryptPubKey(client, { kms: "", app_id: "a".repeat(40) })).rejects.toThrow("KMS ID or slug is required");
 
-      // Test valid request structure
-      const validRequest = GetAppEnvEncryptPubKeyRequestSchema.parse(mockRequest);
-      expect(validRequest).toEqual(mockRequest);
+      // Test invalid appId length
+      await expect(getAppEnvEncryptPubKey(client, { kms: "test-kms", app_id: "short" })).rejects.toThrow("App ID must be exactly 40 characters");
+      await expect(getAppEnvEncryptPubKey(client, { kms: "test-kms", app_id: "a".repeat(39) })).rejects.toThrow("App ID must be exactly 40 characters");
+      await expect(getAppEnvEncryptPubKey(client, { kms: "test-kms", app_id: "a".repeat(41) })).rejects.toThrow("App ID must be exactly 40 characters");
 
-      // Test invalid request structure
-      expect(() => {
-        GetAppEnvEncryptPubKeyRequestSchema.parse({
-          kmsId: 123, // should be string
-          appId: "app-456",
-        });
-      }).toThrow();
+      // Test valid request
+      const validRequest = { kms: "test-kms", app_id: "a".repeat(40) };
+      expect(GetAppEnvEncryptPubKeyRequestSchema.parse(validRequest)).toEqual(validRequest);
     });
 
     it("should validate response data with zod schema", async () => {
@@ -89,34 +81,21 @@ describe("getAppEnvEncryptPubKey", () => {
         signature: null, // should be string
       };
 
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: invalidData,
-      });
+      mockGet.mockResolvedValue(invalidData);
 
       await expect(getAppEnvEncryptPubKey(client, mockRequest)).rejects.toThrow();
     });
 
     it("should handle API errors properly", async () => {
-      mockSafeGet.mockResolvedValue({
-        success: false,
-        error: new Error("KMS or App not found"),
-      });
+      const apiError = new Error("KMS or App not found");
+      mockGet.mockRejectedValue(apiError);
 
-      // Note: this function returns the error result directly instead of throwing
-      const result = await getAppEnvEncryptPubKey(client, mockRequest);
-      expect(result).toEqual({
-        success: false,
-        error: new Error("KMS or App not found"),
-      });
+      await expect(getAppEnvEncryptPubKey(client, mockRequest)).rejects.toThrow("KMS or App not found");
     });
 
     it("should return raw data when schema is false", async () => {
       const rawData = { some: "raw", data: 123 };
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: rawData,
-      });
+      mockGet.mockResolvedValue(rawData);
 
       const result = await getAppEnvEncryptPubKey(client, mockRequest, { schema: false });
 
@@ -133,10 +112,7 @@ describe("getAppEnvEncryptPubKey", () => {
         custom_signature: "custom-signature-data",
       };
 
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: customData,
-      });
+      mockGet.mockResolvedValue(customData);
 
       const result = await getAppEnvEncryptPubKey(client, mockRequest, { schema: customSchema });
 
@@ -150,28 +126,22 @@ describe("getAppEnvEncryptPubKey", () => {
       });
       const invalidData = { custom_key: 123, custom_signature: "test" };
 
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: invalidData,
-      });
+      mockGet.mockResolvedValue(invalidData);
 
       await expect(getAppEnvEncryptPubKey(client, mockRequest, { schema: customSchema })).rejects.toThrow();
     });
 
     it("should handle special characters in IDs", async () => {
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: mockAppEnvEncryptPubKeyData,
-      });
+      mockGet.mockResolvedValue(mockAppEnvEncryptPubKeyData);
 
       const specialRequest = {
-        kmsId: "kms-123_test.special",
-        appId: "app-456-special_test",
+        kms: "kms-123_test.special",
+        app_id: "a".repeat(40),
       };
 
       await getAppEnvEncryptPubKey(client, specialRequest);
 
-      expect(mockSafeGet).toHaveBeenCalledWith("/kms/kms-123_test.special/pubkey/app-456-special_test");
+      expect(mockGet).toHaveBeenCalledWith(`/kms/${specialRequest.kms}/pubkey/${specialRequest.app_id}`);
     });
 
     it("should handle long public key and signature", async () => {
@@ -180,10 +150,7 @@ describe("getAppEnvEncryptPubKey", () => {
         signature: "30440220" + "b".repeat(64) + "02" + "c".repeat(62), // Long signature
       };
 
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: longKeyData,
-      });
+      mockGet.mockResolvedValue(longKeyData);
 
       const result = await getAppEnvEncryptPubKey(client, mockRequest);
 
@@ -200,7 +167,7 @@ describe("getAppEnvEncryptPubKey", () => {
 
       const result = await safeGetAppEnvEncryptPubKey(client, mockRequest);
 
-      expect(mockSafeGet).toHaveBeenCalledWith("/kms/kms-123/pubkey/app-456");
+      expect(mockSafeGet).toHaveBeenCalledWith(`/kms/${mockRequest.kms}/pubkey/${mockRequest.app_id}`);
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toEqual(mockAppEnvEncryptPubKeyData);
@@ -341,13 +308,13 @@ describe("getAppEnvEncryptPubKey", () => {
       });
 
       const anotherRequest = {
-        kmsId: "production-kms",
-        appId: "production-app",
+        kms: "production-kms",
+        app_id: "c".repeat(40),
       };
 
       await safeGetAppEnvEncryptPubKey(client, anotherRequest);
 
-      expect(mockSafeGet).toHaveBeenCalledWith("/kms/production-kms/pubkey/production-app");
+      expect(mockSafeGet).toHaveBeenCalledWith(`/kms/${anotherRequest.kms}/pubkey/${anotherRequest.app_id}`);
     });
 
     it("should handle empty string responses", async () => {
@@ -368,39 +335,38 @@ describe("getAppEnvEncryptPubKey", () => {
         expect(result.data).toEqual(emptyData);
       }
     });
+
+    it("should return validation error for invalid request", async () => {
+      const result = await safeGetAppEnvEncryptPubKey(client, { kms: "", app_id: "short" });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        // @ts-expect-error: issues is not defined on RequestError
+        expect(result.error.issues).toBeDefined();
+      }
+    });
   });
 
   describe("edge cases", () => {
-    it("should handle empty string IDs", async () => {
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: mockAppEnvEncryptPubKeyData,
-      });
-
+    it("should reject empty string IDs", async () => {
       const emptyRequest = {
-        kmsId: "",
-        appId: "",
+        kms: "",
+        app_id: "a".repeat(40),
       };
 
-      await getAppEnvEncryptPubKey(client, emptyRequest);
-
-      expect(mockSafeGet).toHaveBeenCalledWith("/kms//pubkey/");
+      await expect(getAppEnvEncryptPubKey(client, emptyRequest)).rejects.toThrow("KMS ID or slug is required");
     });
 
     it("should handle URL encoding in IDs", async () => {
-      mockSafeGet.mockResolvedValue({
-        success: true,
-        data: mockAppEnvEncryptPubKeyData,
-      });
+      mockGet.mockResolvedValue(mockAppEnvEncryptPubKeyData);
 
       const encodedRequest = {
-        kmsId: "kms with spaces",
-        appId: "app/with/slashes",
+        kms: "kms with spaces",
+        app_id: "a".repeat(40),
       };
 
       await getAppEnvEncryptPubKey(client, encodedRequest);
 
-      expect(mockSafeGet).toHaveBeenCalledWith("/kms/kms with spaces/pubkey/app/with/slashes");
+      expect(mockGet).toHaveBeenCalledWith(`/kms/${encodedRequest.kms}/pubkey/${encodedRequest.app_id}`);
     });
 
     it("should validate schema structure", async () => {
