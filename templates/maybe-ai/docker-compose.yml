@@ -6,6 +6,10 @@ x-rails-env: &rails_env
   # Critical: Tell Rails it's behind HTTPS proxy
   RAILS_FORCE_SSL: "false"
   RAILS_ASSUME_SSL: "true"
+  # Force HTTPS in URLs 
+  FORCE_SSL: "false"
+  X_FORWARDED_SSL: "on"
+  X_FORWARDED_PROTO: "https"
   POSTGRES_USER: maybe_user
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
   POSTGRES_DB: maybe_production
@@ -17,8 +21,8 @@ x-rails-env: &rails_env
   # Use DSTACK variables for proper domain configuration
   APP_DOMAIN: "${DSTACK_APP_ID}-3000.${DSTACK_GATEWAY_DOMAIN}"
   RAILS_HOSTS: ".${DSTACK_GATEWAY_DOMAIN},.teehouse.phatfn.xyz,localhost"
-  # Optional: OpenAI for AI features
-  OPENAI_ACCESS_TOKEN: ${OPENAI_ACCESS_TOKEN}
+  # Optional: OpenAI for AI features (leave empty to skip)
+  OPENAI_ACCESS_TOKEN: ${OPENAI_ACCESS_TOKEN:-}
 
 services:
   db:
