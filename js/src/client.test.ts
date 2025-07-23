@@ -216,6 +216,10 @@ describe("Client", () => {
 			// Clear previous mocks for this isolated test
 			vi.clearAllMocks();
 
+			// Ensure environment variable does not affect this test
+			const oldPrefix = process.env.PHALA_CLOUD_API_PREFIX;
+			delete process.env.PHALA_CLOUD_API_PREFIX;
+
 			const config: ClientConfig = {
 				apiKey: "test-key",
 			};
@@ -224,7 +228,7 @@ describe("Client", () => {
 
 			expect(ofetch.create).toHaveBeenCalledWith(
 				expect.objectContaining({
-					baseURL: "https://cloud-api.phala.network/v1",
+					baseURL: "https://cloud-api.phala.network/api/v1",
 					timeout: 30000,
 					headers: expect.objectContaining({
 						"X-API-Key": "test-key",
@@ -233,6 +237,9 @@ describe("Client", () => {
 					onResponseError: expect.any(Function),
 				}),
 			);
+
+			// Restore environment variable
+			if (oldPrefix !== undefined) process.env.PHALA_CLOUD_API_PREFIX = oldPrefix;
 		});
 
 		test("should provide access to raw ofetch instance", () => {
