@@ -1,6 +1,6 @@
 {
   "name": "@phala/cloud",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "TypeScript SDK for Phala Cloud API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,7 +16,14 @@
     "lint:fix": "biome lint --write .",
     "check": "npm run lint && npm run test",
     "type-check": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "prepublish-stable": "npm run build && npm run check",
+    "publish-stable": "npm run prepublish-stable && npm publish --access public",
+    "prepublish-beta": "npm run build && npm run check",
+    "publish-beta": "npm run prepublish-beta && npm publish --access public --tag beta"
   },
   "keywords": ["phala", "cloud", "cvm", "tee", "blockchain", "deployment"],
   "author": "Leechael Yim",
