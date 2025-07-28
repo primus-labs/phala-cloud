@@ -323,5 +323,21 @@
     "tags": [
       "MCP"
     ]
+  },
+  {
+    "id": "zep-graphiti-mcp",
+    "name": "Zep Graphiti MCP",
+    "description": "A Zep Graphiti MCP server deployed on Phala Cloud to build private Real-Time Knowledge Graphs for AI Agents.",
+    "repo": "https://github.com/HashWarlock/graphiti/tree/main/mcp_server",
+    "author": "HashWarlock",
+    "icon": "zep.png",
+    "envs": [
+      { "key": "OPENAI_API_KEY", "required": true },
+      { "key": "MODEL_NAME", "required": true },
+      { "key": "NEO4J_URI", "required": false },
+      { "key": "NEO4J_USER", "required": false },
+      { "key": "NEO4J_PASSWORD", "required": false }
+    ],
+    "tags": ["MCP", "Knowledge Graph"]
   }
 ]
