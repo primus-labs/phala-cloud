@@ -339,5 +339,14 @@
       { "key": "NEO4J_PASSWORD", "required": false }
     ],
     "tags": ["MCP", "Knowledge Graph"]
+  },
+  {
+    "id": "msft-presidio-app",
+    "name": "MSFT Presidio App",
+    "description": "A MSFT Presidio App deployed on Phala Cloud. Presidio (Origin from Latin praesidium ‘protection, garrison’) helps to ensure sensitive data is properly managed and governed. It provides fast identification and anonymization modules for private entities in text and images such as credit card numbers, names, locations, social security numbers, bitcoin wallets, US phone numbers, financial data and more.",
+    "repo": "https://github.com/HashWarlock/presidio/tree/phala-cloud/docs/samples/python/streamlit",
+    "author": "HashWarlock",
+    "icon": "msft-presidio.png",
+    "tags": ["De-Identification"]
   }
 ]
