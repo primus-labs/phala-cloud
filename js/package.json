@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "files": ["dist/**/*", "README.md"],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsup src/index.ts --format cjs,esm && tsc --emitDeclarationOnly --declaration --outDir dist",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "fmt": "biome format --write",
     "test": "vitest --run --exclude '**/*.e2e.test.ts'",

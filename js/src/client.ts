@@ -15,10 +15,10 @@ export class Client {
     // Resolve configuration with environment variables
     const resolvedConfig: ClientConfig = {
       ...config,
-      apiKey: config.apiKey || process.env.PHALA_CLOUD_API_KEY,
+      apiKey: config.apiKey || process?.env?.PHALA_CLOUD_API_KEY,
       baseURL:
         config.baseURL ||
-        process.env.PHALA_CLOUD_API_PREFIX ||
+        process?.env?.PHALA_CLOUD_API_PREFIX ||
         "https://cloud-api.phala.network/api/v1",
     };
 
