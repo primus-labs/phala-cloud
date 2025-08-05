@@ -4,7 +4,7 @@
     "": {
       "name": "@phala/cloud-sdk",
       "dependencies": {
-        "@phala/dstack-sdk": "0.5.0",
+        "@phala/dstack-sdk": "0.5.2",
         "ofetch": "^1.3.3",
         "viem": "^2.7.0",
         "zod": "^3.22.4",
@@ -115,7 +115,7 @@
 
     "@noble/hashes": ["@noble/hashes@1.8.0", "", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
 
-    "@phala/dstack-sdk": ["@phala/dstack-sdk@0.5.0", "", { "optionalDependencies": { "@noble/curves": "^1.8.1", "@solana/web3.js": "^1.98.0", "viem": "^2.21.0 <3.0.0" }, "peerDependencies": { "@noble/hashes": "^1.6.1" } }, "sha512-TyJykRyWB6+UJ3aCrr5YAlS3J6KDczUe5va5PncifaYnQuZfsWRDE/9nYy3wkoTPMhDSI9Pa6s+LimOqlZasGA=="],
+    "@phala/dstack-sdk": ["@phala/dstack-sdk@0.5.2", "", { "optionalDependencies": { "@noble/curves": "^1.8.1", "@solana/web3.js": "^1.98.0", "viem": "^2.21.0 <3.0.0" }, "peerDependencies": { "@noble/hashes": "^1.6.1" } }, "sha512-Azi2xcpRuT2iNH8CpOjT5koHvM5eC5N/B4MO2miaO8zNaw7TMGVw/Xb6JfNzxafff6QIgGlQGQwd62Whb9vmNg=="],
 
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 
