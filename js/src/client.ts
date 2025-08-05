@@ -2,23 +2,30 @@ import { ofetch, type FetchOptions, type FetchRequest, FetchError } from "ofetch
 import { type SafeResult, RequestError, type ClientConfig } from "./types/client";
 export type { SafeResult } from "./types/client";
 
+const SUPPORTED_API_VERSIONS = ["2025-05-31"];
+
 /**
  * HTTP Client class with ofetch compatibility
  */
 export class Client {
-  private fetchInstance: typeof ofetch;
+  protected fetchInstance: typeof ofetch;
   public readonly config: ClientConfig;
 
   constructor(config: ClientConfig = {}) {
     // Resolve configuration with environment variables
     const resolvedConfig: ClientConfig = {
       ...config,
-      apiKey: config.apiKey || process.env.PHALA_CLOUD_API_KEY,
+      apiKey: config.apiKey || process?.env?.PHALA_CLOUD_API_KEY,
       baseURL:
         config.baseURL ||
-        process.env.PHALA_CLOUD_API_PREFIX ||
+        process?.env?.PHALA_CLOUD_API_PREFIX ||
         "https://cloud-api.phala.network/api/v1",
     };
+
+    const version =
+      resolvedConfig.version && SUPPORTED_API_VERSIONS.includes(resolvedConfig.version)
+        ? resolvedConfig.version!
+        : SUPPORTED_API_VERSIONS[0]!;
 
     this.config = resolvedConfig;
 
@@ -37,6 +44,7 @@ export class Client {
       timeout: timeout || 30000,
       headers: {
         "X-API-Key": apiKey,
+        "X-Phala-Version": version,
         "Content-Type": "application/json",
         ...(headers || {}),
       },
