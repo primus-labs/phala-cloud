@@ -222,6 +222,8 @@ const AddComposeHashRequestSchema = z
     // Chain configuration (conditionally required)
     chain: z.unknown().optional(),
 
+    rpcUrl: z.string().optional(),
+
     // Contract configuration (required)
     kmsContractAddress: z.string(),
     appId: z.string(),
@@ -282,6 +284,7 @@ const AddComposeHashRequestSchema = z
 
 export type AddComposeHashRequest = {
   chain?: Chain;
+  rpcUrl?: string;
   appId: Address;
   composeHash: string;
   privateKey?: Hex;
@@ -387,6 +390,7 @@ export async function addComposeHash<T extends z.ZodSchema | false | undefined =
 
   const {
     chain,
+    rpcUrl,
     appId,
     composeHash,
     privateKey,
@@ -418,14 +422,14 @@ export async function addComposeHash<T extends z.ZodSchema | false | undefined =
       publicClient = providedPublicClient as PublicClient;
     } else {
       if (!chain) throw new Error("Chain required when creating publicClient");
-      publicClient = createPublicClient({ chain: chain as Chain, transport: http() });
+      publicClient = createPublicClient({ chain: chain as Chain, transport: http(rpcUrl) });
     }
 
     if (!chain) throw new Error("Chain required when creating walletClient");
     walletClient = createWalletClient({
       account,
       chain: chain as Chain,
-      transport: http(),
+      transport: http(rpcUrl),
     });
 
     address = account.address;
@@ -438,7 +442,7 @@ export async function addComposeHash<T extends z.ZodSchema | false | undefined =
       publicClient = providedPublicClient as PublicClient;
     } else {
       if (!chain) throw new Error("Chain required when creating publicClient");
-      publicClient = createPublicClient({ chain: chain as Chain, transport: http() });
+      publicClient = createPublicClient({ chain: chain as Chain, transport: http(rpcUrl) });
     }
 
     if (!walletClient.account?.address) {
