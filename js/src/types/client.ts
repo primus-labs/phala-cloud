@@ -156,4 +156,9 @@ export interface ClientConfig extends FetchOptions {
   baseURL?: string;
   /** Default timeout in milliseconds (overrides FetchOptions timeout) */
   timeout?: number;
+
+  /**
+   * API version to use
+   */
+  version?: string;
 }

@@ -2,6 +2,8 @@ import { ofetch, type FetchOptions, type FetchRequest, FetchError } from "ofetch
 import { type SafeResult, RequestError, type ClientConfig } from "./types/client";
 export type { SafeResult } from "./types/client";
 
+const SUPPORTED_API_VERSIONS = ["2025-05-31"];
+
 /**
  * HTTP Client class with ofetch compatibility
  */
@@ -20,6 +22,11 @@ export class Client {
         "https://cloud-api.phala.network/api/v1",
     };
 
+    const version =
+      resolvedConfig.version && SUPPORTED_API_VERSIONS.includes(resolvedConfig.version)
+        ? resolvedConfig.version!
+        : SUPPORTED_API_VERSIONS[0]!;
+
     this.config = resolvedConfig;
 
     // Validate that we have an API key
@@ -37,6 +44,7 @@ export class Client {
       timeout: timeout || 30000,
       headers: {
         "X-API-Key": apiKey,
+        "X-Phala-Version": version,
         "Content-Type": "application/json",
         ...(headers || {}),
       },
