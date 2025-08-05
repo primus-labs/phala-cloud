@@ -1,0 +1,14 @@
+{
+  "name": "examples",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "arg": "^5.0.2",
+    "@phala/cloud": "file:../"
+  }
+}
