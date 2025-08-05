@@ -8,7 +8,7 @@ const SUPPORTED_API_VERSIONS = ["2025-05-31"];
  * HTTP Client class with ofetch compatibility
  */
 export class Client {
-  private fetchInstance: typeof ofetch;
+  protected fetchInstance: typeof ofetch;
   public readonly config: ClientConfig;
 
   constructor(config: ClientConfig = {}) {
