@@ -24,6 +24,13 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+
+    // Path mapping for direct source import
+    "baseUrl": ".",
+    "paths": {
+      "@phala/cloud": ["../src/index.ts"],
+      "@phala/cloud/*": ["../src/*"]
+    }
   }
 }
