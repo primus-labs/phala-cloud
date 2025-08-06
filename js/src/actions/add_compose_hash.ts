@@ -224,8 +224,6 @@ const AddComposeHashRequestSchema = z
 
     rpcUrl: z.string().optional(),
 
-    // Contract configuration (required)
-    kmsContractAddress: z.string(),
     appId: z.string(),
     composeHash: z.string(),
 
