@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
-import { CvmInfoSchema } from "../types/cvm_info";
+import { CvmLegacyDetailSchema } from "../types/cvm_info";
 import { ActionParameters, ActionReturnType } from "../types/common";
 import { validateActionParameters, safeValidateActionParameters } from "../utils";
 
-export const GetCvmInfoSchema = CvmInfoSchema;
+export { CvmLegacyDetailSchema };
 
-export type GetCvmInfoResponse = z.infer<typeof GetCvmInfoSchema>;
+export type GetCvmInfoResponse = z.infer<typeof CvmLegacyDetailSchema>;
 
 export const GetCvmInfoRequestSchema = z
   .object({
@@ -80,7 +80,7 @@ export async function getCvmInfo<T extends z.ZodSchema | false | undefined = und
   if (parameters?.schema === false) {
     return response as GetCvmInfoReturnType<T>;
   }
-  const schema = (parameters?.schema || GetCvmInfoSchema) as z.ZodSchema;
+  const schema = (parameters?.schema || CvmLegacyDetailSchema) as z.ZodSchema;
   return schema.parse(response) as GetCvmInfoReturnType<T>;
 }
 
@@ -112,7 +112,7 @@ export async function safeGetCvmInfo<T extends z.ZodSchema | false | undefined =
       data: httpResult.data,
     } as SafeResult<GetCvmInfoReturnType<T>>;
   }
-  const schema = (parameters?.schema || GetCvmInfoSchema) as z.ZodSchema;
+  const schema = (parameters?.schema || CvmLegacyDetailSchema) as z.ZodSchema;
   const validationResult = schema.safeParse(httpResult.data);
   return validationResult as SafeResult<GetCvmInfoReturnType<T>>;
 }

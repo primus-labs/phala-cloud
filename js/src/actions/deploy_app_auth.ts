@@ -262,6 +262,8 @@ const DeployAppAuthRequestBaseSchema = z
     // Chain configuration (conditionally required)
     chain: z.unknown().optional(),
 
+    rpcUrl: z.string().optional(),
+
     // Contract configuration (required)
     kmsContractAddress: z.string(),
 
@@ -326,6 +328,7 @@ export const DeployAppAuthRequestSchema = DeployAppAuthRequestBaseSchema.refine(
 
 export type DeployAppAuthRequest = {
   chain?: Chain;
+  rpcUrl?: string;
   kmsContractAddress: Address;
   privateKey?: Hex;
   walletClient?: WalletClient;
@@ -436,6 +439,7 @@ export async function deployAppAuth<T extends z.ZodSchema | false | undefined = 
 
   const {
     chain,
+    rpcUrl,
     kmsContractAddress,
     privateKey,
     walletClient: providedWalletClient,
@@ -482,7 +486,7 @@ export async function deployAppAuth<T extends z.ZodSchema | false | undefined = 
       }
       publicClient = createPublicClient({
         chain: chain as Chain,
-        transport: http(),
+        transport: http(rpcUrl),
       });
     }
 
@@ -493,7 +497,7 @@ export async function deployAppAuth<T extends z.ZodSchema | false | undefined = 
     walletClient = createWalletClient({
       account,
       chain: chain as Chain,
-      transport: http(),
+      transport: http(rpcUrl),
     });
 
     deployerAddress = account.address;
@@ -519,7 +523,7 @@ export async function deployAppAuth<T extends z.ZodSchema | false | undefined = 
       }
       publicClient = createPublicClient({
         chain: chain as Chain,
-        transport: http(),
+        transport: http(rpcUrl),
       });
     }
 
