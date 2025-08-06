@@ -7,48 +7,35 @@ import {
   GetCvmInfoSchema,
   type GetCvmInfoResponse,
 } from "./get_cvm_info";
-import type { CvmInfo } from "../types/cvm_info";
+import type { CvmLegacyDetail } from "../types/cvm_info";
 
-// Mock response data matching the API structure
-const mockCvmInfoData: CvmInfo = {
-  hosted: {
-    id: "vm-123",
-    name: "test-vm",
-    status: "running",
-    uptime: "24h",
-    app_url: "https://app.example.com",
-    app_id: "app-123",
-    instance_id: "instance-123",
-    configuration: {
-      vcpu: 2,
-      memory: 4096,
-      disk_size: 40,
-    },
-    exited_at: null,
-    boot_progress: null,
-    boot_error: null,
-    shutdown_progress: null,
-    image_version: "1.0.0",
-  },
+// Mock response data matching the CvmLegacyDetailSchema structure
+const mockCvmInfoData: CvmLegacyDetail = {
+  id: 123,
   name: "test-cvm",
-  managed_user: {
-    id: 1,
-    username: "testuser",
-  },
-  node: {
-    id: 1,
+  status: "running",
+  in_progress: false,
+  teepod_id: 456,
+  teepod: {
+    id: 456,
     name: "test-node",
     region_identifier: "us-west-1",
   },
+  app_id: "app-123",
+  vm_uuid: "123e4567-e89b-42d3-a456-556642440000",
+  instance_id: "instance-123",
+  vcpu: 2,
+  memory: 4096,
+  disk_size: 40,
+  base_image: "ubuntu:20.04",
+  encrypted_env_pubkey: "0x1234567890abcdef",
   listed: true,
-  status: "running",
-  in_progress: false,
-  dapp_dashboard_url: "https://dashboard.example.com",
-  syslog_endpoint: "https://syslog.example.com",
-  allow_upgrade: true,
   project_id: "project-123",
   project_type: "webapp",
-  billing_period: "monthly",
+  public_sysinfo: true,
+  public_logs: true,
+  dapp_dashboard_url: "https://dashboard.example.com",
+  syslog_endpoint: "https://syslog.example.com",
   kms_info: {
     id: "kms-123",
     slug: "test-kms",
@@ -58,16 +45,16 @@ const mockCvmInfoData: CvmInfo = {
     kms_contract_address: "0x1234567890123456789012345678901234567890",
     gateway_app_id: "gateway-123",
   },
-  vcpu: 2,
-  memory: 4096,
-  disk_size: 40,
-  gateway_domain: "gateway.example.com",
+  contract_address: "0x9876543210987654321098765432109876543210",
+  deployer_address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+  scheduled_delete_at: "2024-12-31T23:59:59Z",
   public_urls: [
     {
       app: "https://app.example.com",
       instance: "https://instance.example.com",
     },
   ],
+  gateway_domain: "gateway.example.com",
 };
 
 describe("getCvmInfo", () => {
@@ -92,8 +79,8 @@ describe("getCvmInfo", () => {
 
       expect(mockGet).toHaveBeenCalledWith("/cvms/test-cvm-id");
       expect(result).toEqual(mockCvmInfoData);
-      expect((result as CvmInfo).name).toBe("test-cvm");
-      expect((result as CvmInfo).status).toBe("running");
+      expect((result as CvmLegacyDetail).name).toBe("test-cvm");
+      expect((result as CvmLegacyDetail).status).toBe("running");
     });
 
     it("should return CVM info data successfully with uuid", async () => {
@@ -203,8 +190,8 @@ describe("getCvmInfo", () => {
       await expect(getCvmInfo(client, { id: "test-cvm-id" }, { schema: customSchema })).rejects.toThrow();
     });
 
-    it("should handle partial CVM data correctly", async () => {
-      const partialData: Partial<CvmInfo> = {
+    it("should handle partial CVM data correctly with schema disabled", async () => {
+      const partialData = {
         name: "minimal-cvm",
         status: "stopped",
         listed: false,
@@ -212,10 +199,10 @@ describe("getCvmInfo", () => {
 
       mockGet.mockResolvedValue(partialData);
 
-      const result = await getCvmInfo(client, { id: "test-cvm-id" });
+      const result = await getCvmInfo(client, { id: "test-cvm-id" }, { schema: false });
 
       expect(result).toEqual(partialData);
-      expect((result as CvmInfo).name).toBe("minimal-cvm");
+      expect(result.name).toBe("minimal-cvm");
     });
   });
 
@@ -232,7 +219,7 @@ describe("getCvmInfo", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toEqual(mockCvmInfoData);
-        expect((result.data as CvmInfo).name).toBe("test-cvm");
+        expect((result.data as CvmLegacyDetail).name).toBe("test-cvm");
       }
     });
 
