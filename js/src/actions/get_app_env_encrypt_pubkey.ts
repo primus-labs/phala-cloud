@@ -6,10 +6,12 @@ import { validateActionParameters, safeValidateActionParameters } from "../utils
 export const GetAppEnvEncryptPubKeyRequestSchema = z
   .object({
     kms: z.string().min(1, "KMS ID or slug is required"),
-    app_id: z.string().refine(
-      (val) => val.length === 40 || (val.startsWith("0x") && val.length === 42),
-      "App ID must be exactly 40 characters or 42 characters with 0x prefix"
-    ),
+    app_id: z
+      .string()
+      .refine(
+        (val) => val.length === 40 || (val.startsWith("0x") && val.length === 42),
+        "App ID must be exactly 40 characters or 42 characters with 0x prefix",
+      ),
   })
   .strict();
 

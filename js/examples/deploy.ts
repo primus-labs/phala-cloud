@@ -10,7 +10,7 @@ import { provisionCvm } from "@phala/cloud";
 import { commitCvmProvision } from "@phala/cloud";
 import { getAppEnvEncryptPubKey } from "@phala/cloud";
 import { encryptEnvVars } from "@phala/cloud";
-import { deployAppAuth } from "@phala/cloud"
+import { deployAppAuth } from "@phala/cloud";
 import type { EnvVar } from "@phala/cloud";
 import { provisionCvmComposeFileUpdate } from "@phala/cloud";
 import { commitCvmComposeFileUpdate } from "@phala/cloud";
@@ -64,15 +64,20 @@ async function main(args: arg.Result<typeof typed>) {
   const docker_compose_yml = fs.readFileSync(docker_compose_path, "utf8");
 
   let env_vars: EnvVar[] = [];
-  if (args['--env']) {
-    if (!fs.existsSync(args['--env'])) {
-      console.log("File not found:", args['--env']);
+  if (args["--env"]) {
+    if (!fs.existsSync(args["--env"])) {
+      console.log("File not found:", args["--env"]);
       process.exit(1);
     }
-    const env_file = fs.readFileSync(args['--env'], "utf8");
-    env_vars = env_file.split("\n").filter((line) => line.trim() !== "").map(line => line.split("=")).filter(([k,v]) => {
-      return !!k;
-    }).map(([key, value]) => ({ key: key!, value: value ? `${value}` : '' }));
+    const env_file = fs.readFileSync(args["--env"], "utf8");
+    env_vars = env_file
+      .split("\n")
+      .filter((line) => line.trim() !== "")
+      .map((line) => line.split("="))
+      .filter(([k, v]) => {
+        return !!k;
+      })
+      .map(([key, value]) => ({ key: key!, value: value ? `${value}` : "" }));
   }
 
   // If uuid specified, we considering it already exists and processing update on it.
@@ -88,7 +93,13 @@ async function main(args: arg.Result<typeof typed>) {
   }
 }
 
-async function update_cvm(client: Client, uuid: string, docker_compose_yml: string, env_vars: EnvVar[], args: arg.Result<typeof typed>) {
+async function update_cvm(
+  client: Client,
+  uuid: string,
+  docker_compose_yml: string,
+  env_vars: EnvVar[],
+  args: arg.Result<typeof typed>,
+) {
   const rpc_url = args["--rpc-url"];
   const private_key = args["--private-key"];
 
@@ -107,15 +118,15 @@ async function update_cvm(client: Client, uuid: string, docker_compose_yml: stri
 
   const provision = await provisionCvmComposeFileUpdate(client, {
     uuid: uuid,
-    app_compose: app_compose as ProvisionCvmComposeFileUpdateRequest['app_compose'],
-  })
+    app_compose: app_compose as ProvisionCvmComposeFileUpdateRequest["app_compose"],
+  });
 
   let encrypted_env: string | undefined;
   if (cvm.kms_info) {
     // Update with decentralized KMS.
-    console.log('Interacting with contract DstackApp')
+    console.log("Interacting with contract DstackApp");
     if (!private_key) {
-      throw new Error('Private key is required for contract DstackApp');
+      throw new Error("Private key is required for contract DstackApp");
     }
 
     const receipt = await addComposeHash({
@@ -124,8 +135,8 @@ async function update_cvm(client: Client, uuid: string, docker_compose_yml: stri
       appId: cvm.app_id as `0x${string}`,
       composeHash: provision.compose_hash,
       privateKey: private_key,
-    })
-    console.log('the receipt: ', receipt)
+    });
+    console.log("the receipt: ", receipt);
   } else {
     if (env_vars.length > 0) {
       const encrypted_env_vars = await encryptEnvVars(env_vars, cvm.encrypted_env_pubkey!);
@@ -139,10 +150,15 @@ async function update_cvm(client: Client, uuid: string, docker_compose_yml: stri
     compose_hash: provision.compose_hash,
     encrypted_env: encrypted_env,
     env_keys: env_vars.map((env) => env.key),
-  })
+  });
 }
 
-async function deploy_new_cvm(client: Client, docker_compose_yml: string, env_vars: EnvVar[], args: arg.Result<typeof typed>) {
+async function deploy_new_cvm(
+  client: Client,
+  docker_compose_yml: string,
+  env_vars: EnvVar[],
+  args: arg.Result<typeof typed>,
+) {
   const nodeId = args["--node-id"];
   const kmsId = args["--kms-id"];
   const privateKey = args["--private-key"];
@@ -234,7 +250,7 @@ async function deploy_new_cvm(client: Client, docker_compose_yml: string, env_va
       deviceId: device_id,
       composeHash: app.compose_hash,
     });
-    let app_id = assert_not_null(deployed_contract.appId, "Assert appId is not null.");
+    const app_id = assert_not_null(deployed_contract.appId, "Assert appId is not null.");
     const resp = await getAppEnvEncryptPubKey(client, {
       app_id: app_id,
       kms: kms_slug,
