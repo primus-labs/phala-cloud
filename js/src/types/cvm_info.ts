@@ -42,6 +42,7 @@ export const KMSInfoSchema = z.object({
   gateway_app_id: z.string().optional(),
 });
 
+// CVM schema that use in list API.
 export const CvmInfoSchema = z
   .object({
     hosted: VmInfoSchema,
@@ -67,3 +68,36 @@ export const CvmInfoSchema = z
   .partial();
 
 export type CvmInfo = z.infer<typeof CvmInfoSchema>;
+
+// CVM schema that use in get API.
+export const CvmLegacyDetailSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  status: z.string(),
+  in_progress: z.boolean(),
+  teepod_id: z.number().nullable(),
+  teepod: CvmNodeSchema,
+  app_id: z.string(),
+  vm_uuid: z.string().nullable(),
+  instance_id: z.string().nullable(),
+  vcpu: z.number().nullable(),
+  memory: z.number().nullable(),
+  disk_size: z.number().nullable(),
+  base_image: z.string(),
+  encrypted_env_pubkey: z.string().nullable(),
+  listed: z.boolean(),
+  project_id: z.string().nullable(),
+  project_type: z.string().nullable(),
+  public_sysinfo: z.boolean(),
+  public_logs: z.boolean(),
+  dapp_dashboard_url: z.string().nullable(),
+  syslog_endpoint: z.string().nullable(),
+  kms_info: KMSInfoSchema.nullable(),
+  contract_address: z.string().nullable(),
+  deployer_address: z.string().nullable(),
+  scheduled_delete_at: z.string().nullable(),
+  public_urls: z.array(CvmNetworkUrlsSchema),
+  gateway_domain: z.string().nullable(),
+});
+
+export type CvmLegacyDetail = z.infer<typeof CvmLegacyDetailSchema>;

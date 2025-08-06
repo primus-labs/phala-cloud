@@ -107,7 +107,7 @@ export {
   safeGetCvmInfo,
   type GetCvmInfoParameters,
   type GetCvmInfoReturnType,
-  GetCvmInfoSchema,
+  CvmLegacyDetailSchema,
 } from "./get_cvm_info";
 
 export {
