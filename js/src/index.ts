@@ -10,6 +10,9 @@ export * from "./actions";
 // Utils
 export * from "./utils";
 
+// Dotenv parsing
+export { parseEnv, parseEnvVars } from "./parse_dotenv";
+
 export {
   encryptEnvVars,
   type EnvVar,
