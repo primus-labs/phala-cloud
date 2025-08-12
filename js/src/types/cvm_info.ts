@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { type KmsInfo } from "./kms_info";
 
 export const VmInfoSchema = z.object({
   id: z.string(),
@@ -100,4 +101,4 @@ export const CvmLegacyDetailSchema = z.object({
   gateway_domain: z.string().nullable(),
 });
 
-export type CvmLegacyDetail = z.infer<typeof CvmLegacyDetailSchema>;
+export type CvmLegacyDetail = z.infer<typeof CvmLegacyDetailSchema> & { kms_info: KmsInfo };

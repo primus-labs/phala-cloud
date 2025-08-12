@@ -15,6 +15,7 @@ async function main(_: arg.Result<typeof typed>) {
       console.log("KMS Chain ID:", kms.chain_id);
       console.log("KMS KMS Contract Address:", kms.kms_contract_address);
       console.log("KMS Gateway App ID:", kms.gateway_app_id);
+      console.log("KMS Chain:", kms.chain.name);
     } else {
       console.log("Centralized KMS");
     }

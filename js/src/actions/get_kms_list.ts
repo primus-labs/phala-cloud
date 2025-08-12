@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
-import { KmsInfoSchema } from "../types/kms_info";
+import { KmsInfo, KmsInfoSchema } from "../types/kms_info";
 import { ActionParameters, ActionReturnType } from "../types/common";
 import { validateActionParameters, safeValidateActionParameters } from "../utils";
 
@@ -23,7 +23,7 @@ export const GetKmsListSchema = z
   .strict();
 
 export type GetKmsListRequest = z.infer<typeof GetKmsListRequestSchema>;
-export type GetKmsListResponse = z.infer<typeof GetKmsListSchema>;
+export type GetKmsListResponse = z.infer<typeof GetKmsListSchema> & { items: KmsInfo[] };
 
 export type GetKmsListParameters<T = undefined> = ActionParameters<T>;
 

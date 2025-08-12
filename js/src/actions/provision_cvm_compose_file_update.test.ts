@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 import { Client } from "../client";
+import { SUPPORTED_CHAINS } from "../types/supported_chains";
 import {
   provisionCvmComposeFileUpdate,
   safeProvisionCvmComposeFileUpdate,
@@ -43,6 +44,7 @@ describe("provisionCvmComposeFileUpdate", () => {
       chain_id: 1,
       kms_contract_address: "0x1234567890abcdef",
       gateway_app_id: "0x123456789abcdef",
+      chain: SUPPORTED_CHAINS[1],
     },
   };
 

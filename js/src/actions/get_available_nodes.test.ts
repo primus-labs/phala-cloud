@@ -8,6 +8,7 @@ import {
   AvailableNodesSchema,
 } from "./get_available_nodes";
 import type { Client } from "../client";
+import { SUPPORTED_CHAINS } from "../types/supported_chains";
 
 // Mock response data matching the API structure
 const mockAvailableNodesData: AvailableNodes = {
@@ -39,6 +40,7 @@ const mockAvailableNodesData: AvailableNodes = {
       support_onchain_kms: false,
       fmspc: null,
       device_id: null,
+      kms_list: [],
     },
   ],
   kms_list: [
@@ -50,6 +52,7 @@ const mockAvailableNodesData: AvailableNodes = {
       chain_id: 1,
       kms_contract_address: "0xabc" as any,
       gateway_app_id: "0xdef" as any,
+      chain: SUPPORTED_CHAINS[1],
     },
   ],
 };

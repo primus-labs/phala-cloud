@@ -9,6 +9,7 @@ import {
   type GetKmsInfoRequest,
 } from "./get_kms_info";
 import type { KmsInfo } from "../types/kms_info";
+import { SUPPORTED_CHAINS } from "../types/supported_chains";
 
 // Mock response data matching the API structure
 const mockKmsInfoData: KmsInfo = {
@@ -19,6 +20,8 @@ const mockKmsInfoData: KmsInfo = {
   chain_id: 1,
   kms_contract_address: "0x1234567890123456789012345678901234567890" as any,
   gateway_app_id: "0x123456789abcdef" as any,
+  // chain will be added by schema transform; reflect it in expected
+  chain: SUPPORTED_CHAINS[1],
 };
 
 describe("getKmsInfo", () => {

@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
 import { CvmLegacyDetailSchema } from "../types/cvm_info";
+import { type KmsInfo } from "../types/kms_info";
 import { ActionParameters, ActionReturnType } from "../types/common";
 import { validateActionParameters, safeValidateActionParameters } from "../utils";
 
 export { CvmLegacyDetailSchema };
 
-export type GetCvmInfoResponse = z.infer<typeof CvmLegacyDetailSchema>;
+export type GetCvmInfoResponse = z.infer<typeof CvmLegacyDetailSchema> & { kms_info: KmsInfo };
 
 export const GetCvmInfoRequestSchema = z
   .object({

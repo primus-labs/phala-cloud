@@ -10,6 +10,7 @@ import {
   type GetKmsListParameters,
 } from "./get_kms_list";
 import type { KmsInfo } from "../types/kms_info";
+import { SUPPORTED_CHAINS } from "../types/supported_chains";
 
 // Mock response data matching the API structure
 const mockKmsData: KmsInfo = {
@@ -20,6 +21,7 @@ const mockKmsData: KmsInfo = {
   chain_id: 1,
   kms_contract_address: "0x1234567890123456789012345678901234567890" as any,
   gateway_app_id: "0x123456789abcdef" as any,
+  chain: SUPPORTED_CHAINS[1],
 };
 
 const mockKmsListData = {
