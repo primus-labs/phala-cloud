@@ -81,10 +81,12 @@ export const TeepodCapacitySchema = z
     remaining_memory: z.number(),
     remaining_cvm_slots: z.number(),
     images: z.array(AvailableOSImageSchema),
-    dedicated_for_team_id: z.number().nullable().optional(),
     support_onchain_kms: z.boolean().optional(),
     fmspc: z.string().nullable().optional(),
     device_id: z.string().nullable().optional(),
+    region_identifier: z.string().nullable().optional(),
+    default_kms: z.string().nullable().optional(),
+    kms_list: z.array(z.string()),
   })
   .passthrough();
 
