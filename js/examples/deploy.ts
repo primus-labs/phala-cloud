@@ -14,7 +14,8 @@ import { deployAppAuth } from "@phala/cloud";
 import type { EnvVar } from "@phala/cloud";
 import { provisionCvmComposeFileUpdate } from "@phala/cloud";
 import { commitCvmComposeFileUpdate } from "@phala/cloud";
-import { anvil } from "viem/chains";
+import type { Chain } from "viem";
+import type { KmsInfo } from "@phala/cloud";
 
 // ==================================================================
 //
@@ -122,7 +123,7 @@ async function update_cvm(
   });
 
   let encrypted_env: string | undefined;
-  if (cvm.kms_info) {
+  if (cvm.kms_info && cvm.kms_info.chain_id) {
     // Update with decentralized KMS.
     console.log("Interacting with contract DstackApp");
     if (!private_key) {
@@ -130,7 +131,7 @@ async function update_cvm(
     }
 
     const receipt = await addComposeHash({
-      chain: anvil,
+      chain: cvm.kms_info.chain,
       rpcUrl: rpc_url,
       appId: cvm.app_id as `0x${string}`,
       composeHash: provision.compose_hash,
@@ -189,7 +190,7 @@ async function deploy_new_cvm(
         throw new Error(`You need specify a private key for Contract Owned CVM`);
       }
       const kms_list = await getKmsList(client);
-      kms = kms_list.items.find((kms) => kms.slug === kmsId || kms.id === kmsId);
+      kms = kms_list.items.find((kms) => kms.slug === kmsId || kms.id === kmsId) as KmsInfo;
       if (!kms) {
         throw new Error(`KMS ${kmsId} not found`);
       }
@@ -234,16 +235,17 @@ async function deploy_new_cvm(
       compose_hash: app.compose_hash,
     });
   } else {
-    kms = assert_not_null(kms, "Assert kms is not null.");
+    kms = assert_not_null<KmsInfo>(kms, "Assert kms is not null.");
     const kms_slug = assert_not_null(kms.slug, "Assert kms.slug is not null.");
     assert_not_null(kms.kms_contract_address, "Assert kms_contract_address is not null.");
     assert_not_null(privateKey, "Assert privateKey is not null.");
     assert_not_null(app.compose_hash, "Assert compose_hash is not null.");
     const device_id = assert_not_null(target.device_id, "Assert device_id is not null.");
     const rpc_url = assert_not_null(rpcUrl, "Assert rpcUrl is not null.");
+    const chain = assert_not_null<Chain>(kms.chain, "Assert kms.chain is not null.");
 
     const deployed_contract = await deployAppAuth({
-      chain: anvil,
+      chain,
       rpcUrl: rpc_url,
       kmsContractAddress: kms.kms_contract_address,
       privateKey: privateKey,
