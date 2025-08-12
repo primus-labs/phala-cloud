@@ -86,7 +86,7 @@ export const TeepodCapacitySchema = z
     device_id: z.string().nullable().optional(),
     region_identifier: z.string().nullable().optional(),
     default_kms: z.string().nullable().optional(),
-    kms_list: z.array(z.string()),
+    kms_list: z.array(z.string()).default([]),
   })
   .passthrough();
 

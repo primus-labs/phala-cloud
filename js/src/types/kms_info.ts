@@ -1,7 +1,9 @@
 import type { Address, Hex } from "viem";
+import type { Chain } from "viem";
 import { z } from "zod";
+import { SUPPORTED_CHAINS } from "./supported_chains";
 
-export const KmsInfoSchema = z
+const KmsInfoBaseSchema = z
   .object({
     id: z.string(),
     slug: z.string().nullable(),
@@ -19,4 +21,16 @@ export const KmsInfoSchema = z
   })
   .passthrough();
 
-export type KmsInfo = z.infer<typeof KmsInfoSchema>;
+export const KmsInfoSchema = KmsInfoBaseSchema.transform((data) => {
+  if (data.chain_id != null) {
+    const chain: Chain | undefined = SUPPORTED_CHAINS[data.chain_id];
+    if (chain) {
+      return { ...data, chain } as typeof data & { chain: Chain };
+    }
+  }
+  return data as typeof data;
+});
+
+export type KmsInfo =
+  | (z.infer<typeof KmsInfoBaseSchema> & { chain_id: number; chain: Chain })
+  | (z.infer<typeof KmsInfoBaseSchema> & { chain_id: undefined | null; chain: undefined });
