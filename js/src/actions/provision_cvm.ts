@@ -69,6 +69,7 @@ export const ProvisionCvmSchema = z
     device_id: z.string().nullable().optional(),
     os_image_hash: z.string().nullable().optional(),
     node_id: z.number().nullable().optional(), // Transformed from teepod_id in response
+    kms_id: z.string().nullable().optional(),
   })
   .passthrough();
 
