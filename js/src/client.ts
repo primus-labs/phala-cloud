@@ -20,7 +20,7 @@ function formatHeaders(headers: Record<string, string>): string {
  */
 function formatBody(body: unknown): string {
   if (!body) return "";
-  
+
   const bodyStr = typeof body === "string" ? body : JSON.stringify(body, null, 2);
   return `    -d '${bodyStr.replace(/'/g, "\\'")}'`;
 }
@@ -28,21 +28,28 @@ function formatBody(body: unknown): string {
 /**
  * Format response for cURL-like output
  */
-function formatResponse(status: number, statusText: string, headers: Headers, body: unknown): string {
+function formatResponse(
+  status: number,
+  statusText: string,
+  headers: Headers,
+  body: unknown,
+): string {
   const headerEntries: string[] = [];
   headers.forEach((value, key) => {
     headerEntries.push(`${key}: ${value}`);
   });
   const headerStr = headerEntries.join("\n");
-  
+
   const bodyStr = typeof body === "string" ? body : JSON.stringify(body, null, 2);
-  
+
   return [
     `< HTTP/1.1 ${status} ${statusText}`,
     headerStr ? `< ${headerStr.replace(/\n/g, "\n< ")}` : "",
     "",
-    bodyStr
-  ].filter(Boolean).join("\n");
+    bodyStr,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 /**
@@ -99,23 +106,25 @@ export class Client {
           const method = options.method || "GET";
           const url = typeof request === "string" ? request : request.url;
           const fullUrl = url.startsWith("http") ? url : `${baseURL}${url}`;
-          
+
           // Convert headers to a plain object for formatting
           const headerObj: Record<string, string> = {};
-          if (options.headers && typeof options.headers === 'object') {
+          if (options.headers && typeof options.headers === "object") {
             Object.entries(options.headers).forEach(([key, value]) => {
-              if (typeof value === 'string') {
+              if (typeof value === "string") {
                 headerObj[key] = value;
               }
             });
           }
-          
+
           const curlCommand = [
             `> curl -X ${method} "${fullUrl}"`,
             formatHeaders(headerObj),
             options.body ? formatBody(options.body) : "",
-          ].filter(Boolean).join("\n");
-          
+          ]
+            .filter(Boolean)
+            .join("\n");
+
           logger("\n=== REQUEST ===\n%s\n", curlCommand);
         }
       },
@@ -125,18 +134,13 @@ export class Client {
         if (logger.enabled) {
           const method = options.method || "GET";
           const url = typeof request === "string" ? request : request.url;
-          
+
           logger(
             "\n=== RESPONSE [%s %s] (%dms) ===\n%s\n",
             method,
             url,
             response.headers.get("x-response-time") || "?",
-            formatResponse(
-              response.status,
-              response.statusText,
-              response.headers,
-              response._data
-            )
+            formatResponse(response.status, response.statusText, response.headers, response._data),
           );
         }
       },
@@ -144,21 +148,16 @@ export class Client {
       // Generic handlers for response error (similar to request.ts)
       onResponseError: ({ request, response, options }) => {
         console.warn(`HTTP ${response.status}: ${response.url}`);
-        
+
         if (logger.enabled) {
           const method = options.method || "GET";
           const url = typeof request === "string" ? request : request.url;
-          
+
           logger(
             "\n=== ERROR RESPONSE [%s %s] ===\n%s\n",
             method,
             url,
-            formatResponse(
-              response.status,
-              response.statusText,
-              response.headers,
-              response._data
-            )
+            formatResponse(response.status, response.statusText, response.headers, response._data),
           );
         }
       },
@@ -350,7 +349,7 @@ export class Client {
  *
  * // Using environment variables (set PHALA_CLOUD_API_KEY)
  * const client = createClient()
- * 
+ *
  * // To enable debug logging:
  * // DEBUG=phala::api-client node your-script.js
  * ```
