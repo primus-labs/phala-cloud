@@ -38,7 +38,7 @@ export const KMSInfoSchema = z.object({
   slug: z.string(),
   url: z.string(),
   version: z.string(),
-  chain_id: z.number().optional(),
+  chain_id: z.number().optional().nullable(),
   kms_contract_address: z.string().optional(),
   gateway_app_id: z.string().optional(),
 });
