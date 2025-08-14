@@ -1,8 +1,56 @@
 import { ofetch, type FetchOptions, type FetchRequest, FetchError } from "ofetch";
+import debug from "debug";
 import { type SafeResult, RequestError, type ClientConfig } from "./types/client";
 export type { SafeResult } from "./types/client";
 
 const SUPPORTED_API_VERSIONS = ["2025-05-31"];
+const logger = debug("phala::api-client");
+
+/**
+ * Format headers for cURL-like output
+ */
+function formatHeaders(headers: Record<string, string>): string {
+  return Object.entries(headers)
+    .map(([key, value]) => `    -H "${key}: ${value}"`)
+    .join("\n");
+}
+
+/**
+ * Format request body for cURL-like output
+ */
+function formatBody(body: unknown): string {
+  if (!body) return "";
+
+  const bodyStr = typeof body === "string" ? body : JSON.stringify(body, null, 2);
+  return `    -d '${bodyStr.replace(/'/g, "\\'")}'`;
+}
+
+/**
+ * Format response for cURL-like output
+ */
+function formatResponse(
+  status: number,
+  statusText: string,
+  headers: Headers,
+  body: unknown,
+): string {
+  const headerEntries: string[] = [];
+  headers.forEach((value, key) => {
+    headerEntries.push(`${key}: ${value}`);
+  });
+  const headerStr = headerEntries.join("\n");
+
+  const bodyStr = typeof body === "string" ? body : JSON.stringify(body, null, 2);
+
+  return [
+    `< HTTP/1.1 ${status} ${statusText}`,
+    headerStr ? `< ${headerStr.replace(/\n/g, "\n< ")}` : "",
+    "",
+    bodyStr,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 
 /**
  * HTTP Client class with ofetch compatibility
@@ -39,20 +87,79 @@ export class Client {
     // Extract our custom options and pass the rest to ofetch
     const { apiKey, baseURL, timeout, headers, ...fetchOptions } = resolvedConfig;
 
+    const requestHeaders = {
+      "X-API-Key": apiKey,
+      "X-Phala-Version": version,
+      "Content-Type": "application/json",
+      ...(headers || {}),
+    };
+
     this.fetchInstance = ofetch.create({
       baseURL,
       timeout: timeout || 30000,
-      headers: {
-        "X-API-Key": apiKey,
-        "X-Phala-Version": version,
-        "Content-Type": "application/json",
-        ...(headers || {}),
-      },
+      headers: requestHeaders,
       ...fetchOptions,
 
+      // Log request in cURL format
+      onRequest({ request, options }) {
+        if (logger.enabled) {
+          const method = options.method || "GET";
+          const url = typeof request === "string" ? request : request.url;
+          const fullUrl = url.startsWith("http") ? url : `${baseURL}${url}`;
+
+          // Convert headers to a plain object for formatting
+          const headerObj: Record<string, string> = {};
+          if (options.headers && typeof options.headers === "object") {
+            Object.entries(options.headers).forEach(([key, value]) => {
+              if (typeof value === "string") {
+                headerObj[key] = value;
+              }
+            });
+          }
+
+          const curlCommand = [
+            `> curl -X ${method} "${fullUrl}"`,
+            formatHeaders(headerObj),
+            options.body ? formatBody(options.body) : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
+
+          logger("\n=== REQUEST ===\n%s\n", curlCommand);
+        }
+      },
+
+      // Log response in cURL format
+      onResponse({ request, response, options }) {
+        if (logger.enabled) {
+          const method = options.method || "GET";
+          const url = typeof request === "string" ? request : request.url;
+
+          logger(
+            "\n=== RESPONSE [%s %s] (%dms) ===\n%s\n",
+            method,
+            url,
+            response.headers.get("x-response-time") || "?",
+            formatResponse(response.status, response.statusText, response.headers, response._data),
+          );
+        }
+      },
+
       // Generic handlers for response error (similar to request.ts)
-      onResponseError: ({ response }) => {
+      onResponseError: ({ request, response, options }) => {
         console.warn(`HTTP ${response.status}: ${response.url}`);
+
+        if (logger.enabled) {
+          const method = options.method || "GET";
+          const url = typeof request === "string" ? request : request.url;
+
+          logger(
+            "\n=== ERROR RESPONSE [%s %s] ===\n%s\n",
+            method,
+            url,
+            formatResponse(response.status, response.statusText, response.headers, response._data),
+          );
+        }
       },
     });
   }
@@ -228,6 +335,10 @@ export class Client {
  * - PHALA_CLOUD_API_KEY: API key for authentication
  * - PHALA_CLOUD_API_PREFIX: Base URL prefix for the API
  *
+ * Debug Logging:
+ * - Set DEBUG=phala::api-client to enable cURL-like request/response logging
+ * - This will print detailed information about each API call in a format similar to cURL
+ *
  * @example
  * ```typescript
  * // Using explicit configuration
@@ -238,6 +349,9 @@ export class Client {
  *
  * // Using environment variables (set PHALA_CLOUD_API_KEY)
  * const client = createClient()
+ *
+ * // To enable debug logging:
+ * // DEBUG=phala::api-client node your-script.js
  * ```
  */
 export function createClient(config: ClientConfig = {}): Client {
