@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type KmsInfo } from "./kms_info";
+import { type KmsInfo, KmsInfoSchema } from "./kms_info";
 
 export const VmInfoSchema = z.object({
   id: z.string(),
@@ -33,16 +33,6 @@ export const CvmNetworkUrlsSchema = z.object({
   instance: z.string(),
 });
 
-export const KMSInfoSchema = z.object({
-  id: z.string(), // HashedId is represented as string in JS
-  slug: z.string(),
-  url: z.string(),
-  version: z.string(),
-  chain_id: z.number().optional().nullable(),
-  kms_contract_address: z.string().optional(),
-  gateway_app_id: z.string().optional(),
-});
-
 // CVM schema that use in list API.
 export const CvmInfoSchema = z
   .object({
@@ -59,7 +49,7 @@ export const CvmInfoSchema = z
     project_id: z.string().nullable(), // HashedId is represented as string in JS
     project_type: z.string().nullable(),
     billing_period: z.string().nullable(),
-    kms_info: KMSInfoSchema.nullable(),
+    kms_info: KmsInfoSchema.nullable(),
     vcpu: z.number().nullable(),
     memory: z.number().nullable(),
     disk_size: z.number().nullable(),
@@ -93,7 +83,7 @@ export const CvmLegacyDetailSchema = z.object({
   public_logs: z.boolean(),
   dapp_dashboard_url: z.string().nullable(),
   syslog_endpoint: z.string().nullable(),
-  kms_info: KMSInfoSchema.nullable(),
+  kms_info: KmsInfoSchema.nullable(),
   contract_address: z.string().nullable(),
   deployer_address: z.string().nullable(),
   scheduled_delete_at: z.string().nullable(),
