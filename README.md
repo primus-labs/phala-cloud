@@ -25,6 +25,7 @@ A curated list of awesome Phala Cloud resources, tools, and templates.
 - [**Next.js Starter**](https://github.com/Phala-Network/phala-cloud-nextjs-starter) - Template for developing a Next.js-based app with boilerplate code targeting deployment on Phala Cloud and DStack. It includes the SDK by default to make integration with TEE features easier. *by Phala-Network*
 - [**Python Starter**](https://github.com/Phala-Network/phala-cloud-python-starter) - Template for developing a FastAPI-based app with boilerplate code targeting deployment on Phala Cloud and DStack. It includes the SDK by default to make integration with TEE features easier. *by Phala-Network*
 - [**Bun + TypeScript Starter**](https://github.com/Phala-Network/phala-cloud-bun-starter) - Template for developing a Bun-based app with boilerplate code targeting deployment on Phala Cloud and DStack. It includes the SDK by default to make integration with TEE features easier. *by Phala-Network*
+- [**Node.js + Express + TypeScript Starter**](https://github.com/Gldywn/phala-cloud-node-starter) - Template for developing a Node.js (Typescript) w/ Express app with boilerplate code targeting deployment on Phala Cloud and DStack. It includes the SDK by default to make integration with TEE features easier. *by [Gldywn](https://github.com/Gldywn)*
 
 ### Other Templates
 
