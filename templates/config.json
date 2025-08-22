@@ -407,5 +407,14 @@
       }
     ],
     "tags": ["Agent", "NEAR", "Oracle", "TEE"]
+  },
+  {
+    "id": "node-oracle-template",
+    "name": "Node.js Oracle Template",
+    "description": "A template for building high-integrity oracles that provides a two-fold guarantee: verifiable computation and verifiable networking. It includes a price aggregator example that demonstrates how to securely fetch, aggregate, and attest to external data, making it a robust foundation for any oracle use case.",
+    "repo": "https://github.com/Gldywn/phala-cloud-oracle-template",
+    "author": "Gldywn",
+    "icon": "hha.png",
+    "tags": ["Oracle", "Node"]
   }
 ]
