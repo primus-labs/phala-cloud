@@ -27,6 +27,12 @@ A curated list of awesome Phala Cloud resources, tools, and templates.
 - [**Bun + TypeScript Starter**](https://github.com/Phala-Network/phala-cloud-bun-starter) - Template for developing a Bun-based app with boilerplate code targeting deployment on Phala Cloud and DStack. It includes the SDK by default to make integration with TEE features easier. *by Phala-Network*
 - [**Node.js + Express + TypeScript Starter**](https://github.com/Gldywn/phala-cloud-node-starter) - Template for developing a Node.js (Typescript) w/ Express app with boilerplate code targeting deployment on Phala Cloud and DStack. It includes the SDK by default to make integration with TEE features easier. *by [Gldywn](https://github.com/Gldywn)*
 
+### Oracles & Data Feeds
+
+- [**Node.js Oracle Template**](https://github.com/Gldywn/phala-cloud-oracle-template) - A template for building high-integrity oracles that provides a two-fold guarantee: verifiable computation and verifiable networking. It includes a price aggregator example that demonstrates how to securely fetch, aggregate, and attest to external data, making it a robust foundation for any oracle use case. *by [Gldywn](https://github.com/Gldywn)*
+- [**VRF in TEE**](https://github.com/Phala-Network/phala-cloud-vrf-template) - This is a template for developing a VRF generator on Phala Cloud and DStack. It delivers cryptographically verifiable randomness for Web3 applications with hardware-backed security and unprecedented efficiency. *by Phala-Network*
+- [**NEAR Shade Agent**](https://github.com/HashWarlock/shade-agent-template/tree/phala-cloud) - Deploy verifiable blockchain agents and oracles on NEAR Protocol using Phala Cloud's TEE infrastructure. Includes ETH price oracle example and framework for custom agent development with hardware-backed security, private key management, and attestation. *by Near*
+
 ### Other Templates
 
 - [**n8n Workflow Automation**](https://github.com/Phala-Network/awesome-phala-cloud/tree/main/templates/n8n) - A powerful workflow automation tool deployed on Phala Cloud with OAuth2 authentication fixes for TEE environment. Build complex automations, integrate with 400+ services, and run workflows securely within the TEE. *by n8n*
@@ -37,9 +43,7 @@ A curated list of awesome Phala Cloud resources, tools, and templates.
 - [**TEE Coprocessors in Dstack**](https://github.com/Dstack-TEE/dstack-examples/tree/main/lightclient) - Minimal docker file for using the Helios light client to provide a trustworthy view of the blockchain. *by Dstack-TEE*
 - [**Webshell**](https://github.com/Dstack-TEE/dstack-examples/tree/main/webshell) - This guide outlines the steps to set up and use a webshell with the ttyd service. *by Dstack-TEE*
 - [**Coinbase x402 TEE**](https://github.com/HashWarlock/402-api-test/tree/phala-cloud) - A demonstration of a Node.js Express server that integrates TEE and the [X402 payment protocol](https://www.x402.org/) for monetizing API endpoints. *by Phala-Network*
-- [**VRF in TEE**](https://github.com/Phala-Network/phala-cloud-vrf-template) - This is a template for developing a VRF generator on Phala Cloud and DStack. It delivers cryptographically verifiable randomness for Web3 applications with hardware-backed security and unprecedented efficiency. *by Phala-Network*
 - [**Microsoft Presidio in TEE**](https://github.com/HashWarlock/presidio/tree/phala-cloud/docs/samples/python/streamlit) - This is a demo application for Microsoft Presidio, a powerful open-source framework for PII (Personally Identifiable Information) detection and de-identification. This demo is optimized for deployment on Phala Cloud's Confidential Virtual Machines (CVMs). *by Microsoft*
-- [**NEAR Shade Agent**](https://github.com/HashWarlock/shade-agent-template/tree/phala-cloud) - Deploy verifiable blockchain agents and oracles on NEAR Protocol using Phala Cloud's TEE infrastructure. Includes ETH price oracle example and framework for custom agent development with hardware-backed security, private key management, and attestation. *by Near*
 
 ## Contributing
 
