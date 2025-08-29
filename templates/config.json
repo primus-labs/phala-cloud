@@ -216,6 +216,15 @@
     "tags": ["Starter"]
   },
   {
+    "id": "node-starter",
+    "name": "Node.js + Express + TypeScript Starter",
+    "description": "This is a template for developing a Node.js (Typescript) w/ Express app with boilerplate code targeting deployment on Phala Cloud and DStack. It includes the SDK by default to make integration with TEE features easier.",
+    "repo": "https://github.com/Gldywn/phala-cloud-node-starter",
+    "author": "Gldywn",
+    "icon": "node-starter.svg",
+    "tags": ["Starter"]
+  },
+  {
     "id": "armor-crypto",
     "name": "Armor Crypto",
     "description": "A single source for integrating AI Agents with the Crypto ecosystem. This includes Wallet creation and management, swaps, transfers, event-based trades like DCA, stop loss and take profit, and much more. The Armor MCP supports Solana in Alpha and, when in beta, will support more than a dozen blockchains, including Ethereum. Base, Avalanche, Bitcoin, Sui, Berachain, megaETH, Optimism, Ton, BNB, and Arbitrum, among others. Using Armor's MCP you can bring all of crypto into your AI Agent with unified logic and a complete set of tools.",
@@ -424,5 +433,14 @@
       }
     ],
     "tags": ["AI", "Automation"]
+  },
+  {
+    "id": "node-oracle-template",
+    "name": "Node.js Oracle Template",
+    "description": "A template for building high-integrity oracles that provides a two-fold guarantee: verifiable computation and verifiable networking. It includes a price aggregator example that demonstrates how to securely fetch, aggregate, and attest to external data, making it a robust foundation for any oracle use case.",
+    "repo": "https://github.com/Gldywn/phala-cloud-oracle-template",
+    "author": "Gldywn",
+    "icon": "hha.png",
+    "tags": ["Oracle", "Node"]
   }
 ]
