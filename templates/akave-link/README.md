@@ -33,7 +33,7 @@ Once created, open your deployment’s URL from the Phala dashboard.
 - Health: `https://<appId>-80.<gateway-domain>/health`
 - UI: `https://<appId>-80.<gateway-domain>/`
 
-## Preflight (Phala/dstack)
+## Preflight (Phala/DStack)
 - .env: set `PORT=80`
 - docker-compose.yml: ensure `ports: ["80:80"]` and environment is a mapping
 - Multi-arch image (linux/amd64) if you rebuild your own image
