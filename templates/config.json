@@ -36,7 +36,7 @@
     "id": "evm-mcp",
     "name": "EVM MCP",
     "description": "This guide outlines the steps to set up and use a webshell with the ttyd service.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/evm-mcp-server",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/evm-mcp-server",
     "author": "MCP-DAO",
     "envs": [
       { "key": "BEARER_TOKEN", "required": true },
@@ -52,7 +52,7 @@
     "id": "demap-defillama",
     "name": "DeMCP Defillama",
     "description": "A DeFiLlama MCP server deployed on Phala Cloud that enables AI agents to fetch real-time DeFi data, including protocol TVL (Total Value Locked), chain metrics, and token prices.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/demap-defilama",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/demap-defilama",
     "author": "DeMCP",
     "icon": "mcp-defillama.svg",
     "envs": [{ "key": "BEARER_TOKEN", "required": true }],
@@ -62,7 +62,7 @@
     "id": "near-mcp",
     "name": "Near MCP",
     "description": "A Near MCP server deployed on Phala Cloud that enables AI agents to fetch real-time Near data, including protocol TVL (Total Value Locked), chain metrics, and token prices.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/near-mcp-server",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/near-mcp-server",
     "author": "Phala-Network",
     "envs": [
       { "key": "BEARER_TOKEN", "required": true },
@@ -77,7 +77,7 @@
     "id": "solana-mcp",
     "name": "Solana MCP",
     "description": "A Solana MCP server deployed on Phala Cloud that enables AI agents to fetch real-time Solana data, including protocol TVL (Total Value Locked), chain metrics, and token prices.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/solana-mcp",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/solana-mcp",
     "author": "SendAI & DARK",
     "envs": [
       { "key": "BEARER_TOKEN", "required": true },
@@ -92,7 +92,7 @@
     "id": "context7-mcp",
     "name": "Context7 MCP",
     "description": "A Context7 MCP server deployed on Phala Cloud that enables AI agents to fetch real-time Context7 data, including protocol TVL (Total Value Locked), chain metrics, and token prices.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/context7-mcp",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/context7-mcp",
     "author": "Phala-Network",
     "icon": "mcp-context7.png",
     "envs": [{ "key": "BEARER_TOKEN", "required": true }],
@@ -102,7 +102,7 @@
     "id": "elevenlabs-mcp",
     "name": "ElevenLabs MCP",
     "description": "An ElevenLabs MCP server deployed on Phala Cloud that enables AI agents to fetch real-time ElevenLabs data, including protocol TVL (Total Value Locked), chain metrics, and token prices.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/elevenlabs-mcp-server",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/elevenlabs-mcp-server",
     "author": "Phala-Network",
     "envs": [
       { "key": "BEARER_TOKEN", "required": true },
@@ -116,7 +116,7 @@
     "id": "supabase-db",
     "name": "Supabase DB",
     "description": "A Supabase DB MCP server deployed on Phala Cloud that enables AI agents to fetch real-time Supabase DB data, including protocol TVL (Total Value Locked), chain metrics, and token prices.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/supabase-db",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/supabase-db",
     "author": "Phala-Network",
     "envs": [
       { "key": "BEARER_TOKEN", "required": true },
@@ -129,7 +129,7 @@
     "id": "figma-mcp",
     "name": "Figma MCP",
     "description": "A Figma MCP server deployed on Phala Cloud that enables AI agents to fetch real-time Figma data, including protocol TVL (Total Value Locked), chain metrics, and token prices.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/figma-mcp",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/figma-mcp",
     "author": "Phala-Network",
     "envs": [
       { "key": "BEARER_TOKEN", "required": true },
@@ -273,7 +273,7 @@
     "id": "blinko",
     "name": "Blinko",
     "description": "Blinko is an innovative privacy-focused open-source notebook designed for individuals who want to securely capture and organize their fleeting thoughts. Built with privacy at its core, Blinko can integrate with **Phala Network's secure computation framework** to ensure your ideas and notes remain confidential and protected. Whether you're brainstorming sensitive projects or personal musings, Blinko allows you to seamlessly jot down ideas the moment they strike, with the peace of mind that your data stays private and secure.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/blinko",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/blinko",
     "author": "Blinko Space",
     "icon": "blinko.png",
     "envs": [
@@ -286,7 +286,7 @@
     "id": "chatnio",
     "name": "Chatnio",
     "description": "Chatnio is a powerful AI service management platform supporting 70+ models across text, image, audio, and video. It offers flexible deployment options with comprehensive model management, multi-tenant support, and robust security controls. The platform enables efficient deployment and management of AI services at scale through an intuitive interface and powerful API.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/chatnio",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/chatnio",
     "author": "coaidev",
     "icon": "chatnio.png",
     "envs": [
@@ -362,7 +362,7 @@
     "id": "near-shade-agent",
     "name": "NEAR Shade Agent",
     "description": "Deploy verifiable blockchain agents and oracles on NEAR Protocol using Phala Cloud's TEE infrastructure. Includes ETH price oracle example and framework for custom agent development.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/near-shade-agent",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/near-shade-agent",
     "author": "HashWarlock",
     "icon": "mcp-near.svg",
     "envs": [
@@ -412,7 +412,7 @@
     "id": "bytebot",
     "name": "ByteBot AI Desktop Agent",
     "description": "Deploy ByteBot, an open-source AI desktop agent, on Phala Cloud's secure TEE infrastructure. ByteBot can control a computer desktop to complete tasks for you, running in Docker containers on your own infrastructure. Simply describe what you need done in plain English, and ByteBot will figure out how to do it – clicking buttons, typing text, navigating websites, reading documents, and completing tasks just like a human would.",
-    "repo": "https://github.com/Phala-Network/awesome-phala-cloud/tree/main/prebuilt/bytebot",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/bytebot",
     "author": "ByteBot AI",
     "icon": "bytebot.svg",
     "envs": [

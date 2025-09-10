@@ -3,16 +3,10 @@ name: Validate Config
 on:
   push:
     paths:
-      - 'awesome-phala-cloud/templates/config.json'
-      - 'awesome-phala-cloud/templates/config.schema.json'
-      - 'awesome-phala-cloud/templates/validate.py'
-      - 'awesome-phala-cloud/templates/icons/**'
+      - 'templates/**'
   pull_request:
     paths:
-      - 'awesome-phala-cloud/templates/config.json'
-      - 'awesome-phala-cloud/templates/config.schema.json'
-      - 'awesome-phala-cloud/templates/validate.py'
-      - 'awesome-phala-cloud/templates/icons/**'
+      - 'templates/**'
 
 jobs:
   validate:
@@ -34,5 +28,5 @@ jobs:
         
     - name: Run validation
       run: |
-        cd awesome-phala-cloud/templates
+        cd templates
         python validate.py 
