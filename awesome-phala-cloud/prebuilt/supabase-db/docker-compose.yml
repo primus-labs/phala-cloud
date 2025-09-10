@@ -1,0 +1,50 @@
+services:
+  app:
+    image: tolak/supabase-mcp-server:v0.1.5
+    # ports: # Using caddy to proxy the server to enhance security, so no need to expose the port
+    #   - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      - internal
+
+  proxy:
+    image: caddy:2.8
+    ports:
+      - "18080:80"
+    environment:
+      - BEARER_TOKEN=${BEARER_TOKEN}
+    configs:
+      - source: caddy_config
+        target: /etc/caddy/Caddyfile
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - internal
+
+configs:
+  caddy_config:
+    content: |
+      :80 {
+          @valid_auth {
+              header Authorization "Bearer $BEARER_TOKEN"
+          }
+          route @valid_auth {
+              reverse_proxy app:3000
+          }
+          route {
+              respond 401 {
+                  body "Unauthorized"
+                  close
+              }
+          }
+      }
+
+networks:
+  internal:
+    driver: bridge

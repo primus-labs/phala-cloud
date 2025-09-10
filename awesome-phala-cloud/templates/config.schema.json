@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name", "repo", "author"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Unique identifier for the template"
+      },
+      "name": {
+        "type": "string",
+        "description": "Display name of the template"
+      },
+      "description": {
+        "type": "string",
+        "description": "Detailed description of the template"
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "icon": {
+        "type": "string",
+        "description": "icon URL"
+      },
+      "author": {
+        "type": "string",
+        "description": "Github user handle"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Github repo URL"
+      },
+      "defaultResource": {
+        "type": "object",
+        "properties": {
+          "vCPU": { "type": "integer", "minimum": 1 },
+          "memory": {
+            "type": "integer",
+            "minimum": 1024,
+            "description": "Memory in MB"
+          },
+          "diskSize": {
+            "type": "integer",
+            "minimum": 10,
+            "description": "Disk size in GB"
+          }
+        },
+        "additionalProperties": false
+      },
+      "envs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["key", "required"],
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "default": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": false
+  }
+}

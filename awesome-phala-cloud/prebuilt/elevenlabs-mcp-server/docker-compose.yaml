@@ -1,0 +1,60 @@
+services:
+  app:
+    image: tolak/elevenlabs-mcp-server:v0.1.0
+    # ports: # Using caddy to proxy the server to enhance security, so no need to expose the port
+    #   - "8000:8000"
+    volumes:
+      - /root/data:/root/Desktop
+    environment:
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - ELEVENLABS_MCP_BASE_PATH=${ELEVENLABS_MCP_BASE_PATH}
+    networks:
+      - internal
+
+  fileserver:
+    image: python:3.11-slim
+    ports:
+      - "8080:8080"
+    volumes:
+      - /root/data:/root/data
+    working_dir: /root/data
+    command: python -m http.server 8080
+    networks:
+      - internal
+
+  proxy:
+    image: caddy:2.8
+    ports:
+      - "18080:80"
+    environment:
+      - BEARER_TOKEN=${BEARER_TOKEN}
+    configs:
+      - source: caddy_config
+        target: /etc/caddy/Caddyfile
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - internal
+
+configs:
+  caddy_config:
+    content: |
+      :80 {
+          @valid_auth {
+              header Authorization "Bearer $BEARER_TOKEN"
+          }
+          route @valid_auth {
+              reverse_proxy app:8080
+          }
+          route {
+              respond 401 {
+                  body "Unauthorized"
+                  close
+              }
+          }
+      }
+
+networks:
+  internal:
+    driver: bridge
