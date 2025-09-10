@@ -77,27 +77,41 @@ export class Client {
 
     this.config = resolvedConfig;
 
-    // Validate that we have an API key
-    if (!resolvedConfig.apiKey) {
+    // Validate that we have an API key (unless using cookie auth)
+    if (!resolvedConfig.useCookieAuth && !resolvedConfig.apiKey) {
       throw new Error(
         "API key is required. Provide it via config.apiKey or set PHALA_CLOUD_API_KEY environment variable.",
       );
     }
 
     // Extract our custom options and pass the rest to ofetch
-    const { apiKey, baseURL, timeout, headers, ...fetchOptions } = resolvedConfig;
+    const { apiKey, baseURL, timeout, headers, useCookieAuth, onResponseError, ...fetchOptions } =
+      resolvedConfig;
 
-    const requestHeaders = {
-      "X-API-Key": apiKey,
+    const requestHeaders: Record<string, string> = {
       "X-Phala-Version": version,
       "Content-Type": "application/json",
-      ...(headers || {}),
     };
+
+    // Merge additional headers if provided
+    if (headers && typeof headers === "object") {
+      Object.entries(headers).forEach(([key, value]) => {
+        if (typeof value === "string") {
+          requestHeaders[key] = value;
+        }
+      });
+    }
+
+    // Only add API key header when not using cookie auth
+    if (!useCookieAuth && apiKey) {
+      requestHeaders["X-API-Key"] = apiKey;
+    }
 
     this.fetchInstance = ofetch.create({
       baseURL,
       timeout: timeout || 30000,
       headers: requestHeaders,
+      ...(useCookieAuth ? { credentials: "include" } : {}),
       ...fetchOptions,
 
       // Log request in cURL format
@@ -159,6 +173,11 @@ export class Client {
             url,
             formatResponse(response.status, response.statusText, response.headers, response._data),
           );
+        }
+
+        // Call custom error handler if provided
+        if (onResponseError) {
+          onResponseError({ request, response, options });
         }
       },
     });

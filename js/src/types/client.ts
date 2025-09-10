@@ -146,6 +146,7 @@ export interface ClientConfig extends FetchOptions {
   /**
    * API key for authentication
    * If not provided, will read from PHALA_CLOUD_API_KEY environment variable
+   * Not required when useCookieAuth is true
    */
   apiKey?: string;
 
@@ -163,4 +164,20 @@ export interface ClientConfig extends FetchOptions {
    * API version to use
    */
   version?: string;
+
+  /**
+   * Use cookie-based authentication instead of API key
+   * When true, API key is not required and credentials: "include" is set
+   */
+  useCookieAuth?: boolean;
+
+  /**
+   * Custom response error handler
+   * Will be called in addition to the default error logging
+   */
+  onResponseError?: (context: {
+    request: FetchRequest;
+    response: Response;
+    options: FetchOptions;
+  }) => void | Promise<void>;
 }
