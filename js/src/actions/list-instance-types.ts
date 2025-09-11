@@ -12,25 +12,29 @@ export const ListInstanceTypesRequestSchema = z
   .strict();
 
 // Response Schemas
-export const InstanceTypeSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string(),
-  vcpu: z.number(),
-  memory_mb: z.number(),
-  hourly_rate: z.string(),
-  requires_gpu: z.boolean(),
-  public: z.boolean(),
-  enabled: z.boolean(),
-}).passthrough();
+export const InstanceTypeSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string(),
+    vcpu: z.number(),
+    memory_mb: z.number(),
+    hourly_rate: z.string(),
+    requires_gpu: z.boolean(),
+    public: z.boolean(),
+    enabled: z.boolean(),
+  })
+  .passthrough();
 
-export const PaginatedInstanceTypesSchema = z.object({
-  items: z.array(InstanceTypeSchema),
-  total: z.number(),
-  page: z.number(),
-  page_size: z.number(),
-  pages: z.number(),
-}).strict();
+export const PaginatedInstanceTypesSchema = z
+  .object({
+    items: z.array(InstanceTypeSchema),
+    total: z.number(),
+    page: z.number(),
+    page_size: z.number(),
+    pages: z.number(),
+  })
+  .strict();
 
 // Type definitions
 export type ListInstanceTypesRequest = z.infer<typeof ListInstanceTypesRequestSchema>;
@@ -38,7 +42,10 @@ export type InstanceType = z.infer<typeof InstanceTypeSchema>;
 export type PaginatedInstanceTypes = z.infer<typeof PaginatedInstanceTypesSchema>;
 
 export type ListInstanceTypesParameters<T = undefined> = ActionParameters<T>;
-export type ListInstanceTypesReturnType<T = undefined> = ActionReturnType<PaginatedInstanceTypes, T>;
+export type ListInstanceTypesReturnType<T = undefined> = ActionReturnType<
+  PaginatedInstanceTypes,
+  T
+>;
 
 /**
  * List available instance types with pagination
@@ -69,17 +76,17 @@ export async function listInstanceTypes<T extends z.ZodSchema | false | undefine
 ): Promise<ListInstanceTypesReturnType<T>> {
   const validatedRequest = ListInstanceTypesRequestSchema.parse(request ?? {});
   validateActionParameters(parameters);
-  
+
   const queryParams = new URLSearchParams();
   queryParams.append("page", validatedRequest.page.toString());
   queryParams.append("page_size", validatedRequest.page_size.toString());
-  
+
   const response = await client.get(`/api/instance-types?${queryParams.toString()}`);
-  
+
   if (parameters?.schema === false) {
     return response as ListInstanceTypesReturnType<T>;
   }
-  
+
   const schema = (parameters?.schema || PaginatedInstanceTypesSchema) as z.ZodSchema;
   return schema.parse(response) as ListInstanceTypesReturnType<T>;
 }
