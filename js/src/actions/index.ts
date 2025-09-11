@@ -132,3 +132,15 @@ export {
   type GetKmsListReturnType,
   GetKmsListSchema,
 } from "./get_kms_list";
+
+export {
+  listInstanceTypes,
+  safeListInstanceTypes,
+  type ListInstanceTypesParameters,
+  type ListInstanceTypesReturnType,
+  PaginatedInstanceTypesSchema,
+  InstanceTypeSchema,
+  type PaginatedInstanceTypes,
+  type InstanceType,
+  type ListInstanceTypesRequest,
+} from "./list-instance-types";
