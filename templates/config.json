@@ -460,5 +460,18 @@
     ],
     "defaultResource": { "vCPU": 2, "memory": 2048, "diskSize": 20 },
     "tags": ["Storage", "Akave", "REST", "TEE"]
+  },
+  {
+    "id": "open-webui",
+    "name": "Open WebUI",
+    "description": "A production-ready Open WebUI, an extensible, feature-rich, and user-friendly self-hosted AI platform, running in Phala Cloud's TEE.",
+    "repo": "https://github.com/open-webui/open-webui",
+    "author": "Phala-Network",
+    "icon": "open-webui.png",
+    "envs": [
+      { "key": "WEBUI_SECRET_KEY", "required": false, "description": "Secret key for Open WebUI authentication" }
+    ],
+    "defaultResource": { "vCPU": 2, "memory": 2048, "diskSize": 20 },
+    "tags": ["OpenWebUI", "REST", "TEE"]
   }
 ]
