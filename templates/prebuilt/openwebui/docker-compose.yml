@@ -6,7 +6,7 @@ services:
     volumes:
       - open-webui:/app/backend/data
     environment:
-      - WEBUI_SECRET_KEY=phala
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
 
 volumes:
   open-webui:
