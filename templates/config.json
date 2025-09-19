@@ -465,7 +465,7 @@
     "id": "open-webui",
     "name": "Open WebUI",
     "description": "A production-ready Open WebUI, an extensible, feature-rich, and user-friendly self-hosted AI platform, running in Phala Cloud's TEE.",
-    "repo": "https://github.com/open-webui/open-webui",
+    "repo": "https://github.com/Phala-Network/phala-cloud/tree/main/templates/prebuilt/openwebui",
     "author": "Phala-Network",
     "icon": "open-webui.png",
     "envs": [
