@@ -485,7 +485,7 @@
       { "key": "PRIVATE_KEY", "required": true, "description": "Wallet to report task result." },
       { "key": "BASE_RPC_CHAIN", "required": true, "description": "Rpc for base chain." }
     ],
-    "defaultResource": { "vCPU": 4, "memory": 8096, "diskSize": 20 },
+    "defaultResource": { "vCPU": 4, "memory": 8192, "diskSize": 20 },
     "tags": ["ZKTLS","TEE","PrimusLabs"]
   }
 ]
