@@ -77,8 +77,6 @@ If you want to integrate the SDK into your existing apps, here are the SDKs we c
 - [**bytebot**](https://github.com/bytebot-ai/bytebot) - Bytebot is a desktop AI agent with its own virtual computer—not just a browser script or RPA bot. It can use any app, manage files, log in with a password manager, read PDFs and spreadsheets, and execute complex multi-step workflows. Think of it as a virtual employee that sees the screen, moves the mouse, types, and gets work done like a human. *by bytebot*
 - [**Primus Attestor Node**](https://github.com/primus-labs/primus-network-startup) - An attestor node is a computing node of the Primus network, which forms a secure computation layer for executing zkTLS protocol. The attestor node is designated to run zkTLS tasks with zkTLS software including web version (Primus extension) and mobile versions (Primus AppClips and Primus Instant Apps) on indicated data sources. For security consideration, the attestor node runs inside a Trusted Execution Environment (TEE), ensuring runtime integrity and providing stronger version control.
 
-Any operator of the attestor node is required to stake a certain amount of tokens as collateral to secure his participation in the network activities. The attestor can earn incomes on successfully running the network task. If the zkTLS task is not run correctly, it will also be punished.
-
 ## Build on Phala Cloud
 
 Phala Cloud API allows you to build your own applications programmatically. It offers all the features availabe on the Cloud Platform.
